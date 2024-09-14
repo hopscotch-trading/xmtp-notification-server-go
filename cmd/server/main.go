@@ -83,7 +83,7 @@ func main() {
 		}
 
 		if opts.Fcm.Enabled {
-			fcm, err := delivery.NewFcmDelivery(ctx, logger, opts.Fcm)
+			fcm, err := delivery.NewFcmDelivery(ctx, logger, opts.Fcm, env)
 			if err != nil {
 				logger.Fatal("failed to initialize FCM", zap.Error(err))
 			}
