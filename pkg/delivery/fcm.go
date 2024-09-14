@@ -9,6 +9,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/xmtp/example-notification-server-go/pkg/interfaces"
 	"github.com/xmtp/example-notification-server-go/pkg/options"
+	"github.com/xmtp/example-notification-server-go/pkg/topics"
 	"go.uber.org/zap"
 	"google.golang.org/api/option"
 )
@@ -62,6 +63,11 @@ func (f FcmDelivery) Send(ctx context.Context, req interfaces.SendRequest) error
 		"messageType":      string(req.MessageContext.MessageType),
 	}
 
+	link := "https://hopscotch.trade/chat"
+	if req.MessageContext.MessageType == topics.V2Invite || req.MessageContext.MessageType == topics.V1Intro {
+		link = "https://hopscotch.trade/chat/invites"
+	}
+
 	webpushHeaders := map[string]string{}
 	webpushHeaders["Urgency"] = "high"
 
@@ -85,6 +91,9 @@ func (f FcmDelivery) Send(ctx context.Context, req interfaces.SendRequest) error
 		Webpush: &messaging.WebpushConfig{
 			Data: data,
 			Headers: webpushHeaders,
+			FCMOptions: &messaging.WebpushFCMOptions{
+				Link: link
+			},
 		},
 		APNS: &messaging.APNSConfig{
 			Headers: apnsHeaders,
