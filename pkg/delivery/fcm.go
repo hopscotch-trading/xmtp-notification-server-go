@@ -67,13 +67,20 @@ func (f FcmDelivery) Send(ctx context.Context, req interfaces.SendRequest) error
 	}
 
 	prefix := ""
+	invite := false
 	if f.env != "prod" {
 		prefix = fmt.Sprintf("%s.", f.env)
 	}
 
 	link := fmt.Sprintf("https://%shopscotch.trade/chat", prefix)
 	if req.MessageContext.MessageType == topics.V2Invite || req.MessageContext.MessageType == topics.V1Intro {
+		invite = true
 		link = fmt.Sprintf("https://%shopscotch.trade/chat/invites", prefix)
+	}
+
+	body := "New chat message"
+	if invite {
+		body = "New chat invite"
 	}
 
 	webpushHeaders := map[string]string{}
@@ -92,6 +99,10 @@ func (f FcmDelivery) Send(ctx context.Context, req interfaces.SendRequest) error
 	_, err := f.client.Send(ctx, &messaging.Message{
 		Token: req.Installation.DeliveryMechanism.Token,
 		Data:  data,
+		Notification: &messaging.Notification{
+			Title: "Chat notification",
+			Body: body,
+		},
 		Android: &messaging.AndroidConfig{
 			Data:     data,
 			Priority: androidPriority,
