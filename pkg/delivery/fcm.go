@@ -1,6 +1,7 @@
 package delivery
 
 import (
+	"fmt"
 	"context"
 	"encoding/base64"
 
@@ -17,9 +18,10 @@ import (
 type FcmDelivery struct {
 	logger *zap.Logger
 	client *messaging.Client
+	env string
 }
 
-func NewFcmDelivery(ctx context.Context, logger *zap.Logger, opts options.FcmOptions) (*FcmDelivery, error) {
+func NewFcmDelivery(ctx context.Context, logger *zap.Logger, opts options.FcmOptions, env string) (*FcmDelivery, error) {
 	creds := option.WithCredentialsJSON([]byte(opts.CredentialsJson))
 	app, err := firebase.NewApp(ctx, &firebase.Config{
 		ProjectID: opts.ProjectId,
@@ -43,6 +45,7 @@ func NewFcmDelivery(ctx context.Context, logger *zap.Logger, opts options.FcmOpt
 	return &FcmDelivery{
 		logger: logger,
 		client: messaging,
+		env: env
 	}, nil
 }
 
@@ -63,9 +66,14 @@ func (f FcmDelivery) Send(ctx context.Context, req interfaces.SendRequest) error
 		"messageType":      string(req.MessageContext.MessageType),
 	}
 
-	link := "https://hopscotch.trade/chat"
+	prefix := ""
+	if f.env != "prod" {
+		prefix = fmt.Sprintf("%s.", env)
+	}
+
+	link := fmt.Sprintf("https://%shopscotch.trade/chat", prefix)
 	if req.MessageContext.MessageType == topics.V2Invite || req.MessageContext.MessageType == topics.V1Intro {
-		link = "https://hopscotch.trade/chat/invites"
+		link = fmt.Sprintf("https://%shopscotch.trade/chat/invites", prefix)
 	}
 
 	webpushHeaders := map[string]string{}
