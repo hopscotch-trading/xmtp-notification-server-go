@@ -1,9 +1,9 @@
 package delivery
 
 import (
-	"fmt"
 	"context"
 	"encoding/base64"
+	"fmt"
 
 	firebase "firebase.google.com/go/v4"
 	"firebase.google.com/go/v4/messaging"
@@ -18,7 +18,7 @@ import (
 type FcmDelivery struct {
 	logger *zap.Logger
 	client *messaging.Client
-	env string
+	env    string
 }
 
 func NewFcmDelivery(ctx context.Context, logger *zap.Logger, opts options.FcmOptions, env string) (*FcmDelivery, error) {
@@ -45,7 +45,7 @@ func NewFcmDelivery(ctx context.Context, logger *zap.Logger, opts options.FcmOpt
 	return &FcmDelivery{
 		logger: logger,
 		client: messaging,
-		env: env,
+		env:    env,
 	}, nil
 }
 
@@ -64,6 +64,7 @@ func (f FcmDelivery) Send(ctx context.Context, req interfaces.SendRequest) error
 		"topic":            topic,
 		"encryptedMessage": message,
 		"messageType":      string(req.MessageContext.MessageType),
+		"installationId":   req.Installation.Id,
 	}
 
 	prefix := ""
@@ -101,14 +102,14 @@ func (f FcmDelivery) Send(ctx context.Context, req interfaces.SendRequest) error
 		Data:  data,
 		Notification: &messaging.Notification{
 			Title: "Chat notification",
-			Body: body,
+			Body:  body,
 		},
 		Android: &messaging.AndroidConfig{
 			Data:     data,
 			Priority: androidPriority,
 		},
 		Webpush: &messaging.WebpushConfig{
-			Data: data,
+			Data:    data,
 			Headers: webpushHeaders,
 			FCMOptions: &messaging.WebpushFCMOptions{
 				Link: link,
