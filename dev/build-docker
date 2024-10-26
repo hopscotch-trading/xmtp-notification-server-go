@@ -7,4 +7,4 @@ docker build \
     -t "${IMAGE_TAG}" \
     --build-arg="GIT_COMMIT=${GIT_COMMIT}" \
     --build-arg="XMTP_GO_CLIENT_VERSION=${XMTP_GO_CLIENT_VERSION}" \
-    .
+    . $@
