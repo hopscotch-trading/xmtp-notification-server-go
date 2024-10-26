@@ -16,7 +16,7 @@ RUN go build \
 FROM alpine:3.12
 ENV GOLOG_LOG_FMT=nocolor
 RUN addgroup --system --gid 1001 go
-RUN adduser --system --uid 1001 --gid 1001 go
+RUN adduser --system --uid 1001 -G go go
 
 COPY --from=builder --chown=go:go /app/bin/notifications-server /usr/bin/
 
