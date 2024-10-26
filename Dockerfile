@@ -1,13 +1,11 @@
 # BUILD IMAGE --------------------------------------------------------
-FROM golang:1.20-alpine as builder
-
-# Get build tools and required header files
+FROM golang:1.20-alpine AS base
 RUN apk add --no-cache build-base
 
+FROM base AS builder
 WORKDIR /app
 COPY . .
 
-# Build the final node binary
 ARG GIT_COMMIT=unknown
 ARG XMTP_GO_CLIENT_VERSION=unknown
 RUN go build \
@@ -15,22 +13,17 @@ RUN go build \
     -ldflags="-X 'main.GitCommit=$GIT_COMMIT' -X 'main.XMTPGoClientVersion=$XMTP_GO_CLIENT_VERSION'" \
     cmd/server/main.go
 
-# ACTUAL IMAGE -------------------------------------------------------
-
 FROM alpine:3.12
-
-LABEL maintainer="engineering@xmtp.com"
-LABEL source="https://github.com/xmtp/example-notification-server-go"
-LABEL description="XMTP Example Notification Server"
-
-# color, nocolor, json
 ENV GOLOG_LOG_FMT=nocolor
+RUN addgroup --system --gid 1001 go
+RUN adduser --system --uid 1001 --gid 1001 go
 
-# go-waku default port
+COPY --from=builder --chown=go:go /app/bin/notifications-server /usr/bin/
+
+USER go
+
 EXPOSE 5556
 
-COPY --from=builder /app/bin/notifications-server /usr/bin/
-
 ENTRYPOINT ["/usr/bin/notifications-server"]
-# By default just show help if called without arguments
+
 CMD ["--help"]
