@@ -65,6 +65,7 @@ func (f FcmDelivery) Send(ctx context.Context, req interfaces.SendRequest) error
 		"encryptedMessage": message,
 		"messageType":      string(req.MessageContext.MessageType),
 		"installationId":   req.Installation.Id,
+		"channel":          "chat",
 	}
 
 	prefix := ""
