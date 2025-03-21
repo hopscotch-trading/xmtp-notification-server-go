@@ -29,7 +29,7 @@ type Listener struct {
 	subscriptions    interfaces.Subscriptions
 	clientVersion    string
 	appVersion       string
-	env		 string
+	env              string
 }
 
 func NewListener(
@@ -62,7 +62,7 @@ func NewListener(
 		subscriptions:    subscriptions,
 		clientVersion:    clientVersion,
 		appVersion:       appVersion,
-		env:		  env,
+		env:              env,
 	}, nil
 }
 

@@ -34,7 +34,7 @@ func buildTestListener(t *testing.T, deliveryService interfaces.Delivery) (*List
 	installations := installations.NewInstallationsService(logger, db)
 	subscriptions := subscriptions.NewSubscriptionsService(logger, db)
 
-	l, err := NewListener(ctx, logger, opts, installations, subscriptions, []interfaces.Delivery{deliveryService}, "test", "test")
+	l, err := NewListener(ctx, logger, opts, installations, subscriptions, []interfaces.Delivery{deliveryService}, "test", "test", "local")
 	if err != nil {
 		require.NoError(t, err)
 	}

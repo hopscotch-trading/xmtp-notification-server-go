@@ -75,7 +75,7 @@ func (f FcmDelivery) Send(ctx context.Context, req interfaces.SendRequest) error
 	}
 
 	link := fmt.Sprintf("https://%shopscotch.trade/chat", prefix)
-	if req.MessageContext.MessageType == topics.V2Invite || req.MessageContext.MessageType == topics.V1Intro {
+	if req.MessageContext.MessageType == topics.V3Welcome {
 		invite = true
 		link = fmt.Sprintf("https://%shopscotch.trade/chat/invites", prefix)
 	}
