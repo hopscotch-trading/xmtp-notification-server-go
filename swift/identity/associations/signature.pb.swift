@@ -75,6 +75,25 @@ public struct Xmtp_Identity_Associations_SmartContractWalletSignature: @unchecke
   public init() {}
 }
 
+/// Passkey signature
+public struct Xmtp_Identity_Associations_RecoverablePasskeySignature: @unchecked Sendable {
+  // SwiftProtobuf.Message conformance is added in an extension below. See the
+  // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
+  // methods supported on all messages.
+
+  public var publicKey: Data = Data()
+
+  public var signature: Data = Data()
+
+  public var authenticatorData: Data = Data()
+
+  public var clientDataJson: Data = Data()
+
+  public var unknownFields = SwiftProtobuf.UnknownStorage()
+
+  public init() {}
+}
+
 /// An existing address on xmtpv2 may have already signed a legacy identity key
 /// of type SignedPublicKey via the 'Create Identity' signature.
 /// For migration to xmtpv3, the legacy key is permitted to sign on behalf of the
@@ -157,6 +176,14 @@ public struct Xmtp_Identity_Associations_Signature: Sendable {
     set {signature = .delegatedErc191(newValue)}
   }
 
+  public var passkey: Xmtp_Identity_Associations_RecoverablePasskeySignature {
+    get {
+      if case .passkey(let v)? = signature {return v}
+      return Xmtp_Identity_Associations_RecoverablePasskeySignature()
+    }
+    set {signature = .passkey(newValue)}
+  }
+
   public var unknownFields = SwiftProtobuf.UnknownStorage()
 
   /// Must have two properties:
@@ -169,6 +196,7 @@ public struct Xmtp_Identity_Associations_Signature: Sendable {
     case erc6492(Xmtp_Identity_Associations_SmartContractWalletSignature)
     case installationKey(Xmtp_Identity_Associations_RecoverableEd25519Signature)
     case delegatedErc191(Xmtp_Identity_Associations_LegacyDelegatedSignature)
+    case passkey(Xmtp_Identity_Associations_RecoverablePasskeySignature)
 
   }
 
@@ -293,6 +321,56 @@ extension Xmtp_Identity_Associations_SmartContractWalletSignature: SwiftProtobuf
   }
 }
 
+extension Xmtp_Identity_Associations_RecoverablePasskeySignature: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
+  public static let protoMessageName: String = _protobuf_package + ".RecoverablePasskeySignature"
+  public static let _protobuf_nameMap: SwiftProtobuf._NameMap = [
+    1: .standard(proto: "public_key"),
+    2: .same(proto: "signature"),
+    3: .standard(proto: "authenticator_data"),
+    4: .standard(proto: "client_data_json"),
+  ]
+
+  public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
+    while let fieldNumber = try decoder.nextFieldNumber() {
+      // The use of inline closures is to circumvent an issue where the compiler
+      // allocates stack space for every case branch when no optimizations are
+      // enabled. https://github.com/apple/swift-protobuf/issues/1034
+      switch fieldNumber {
+      case 1: try { try decoder.decodeSingularBytesField(value: &self.publicKey) }()
+      case 2: try { try decoder.decodeSingularBytesField(value: &self.signature) }()
+      case 3: try { try decoder.decodeSingularBytesField(value: &self.authenticatorData) }()
+      case 4: try { try decoder.decodeSingularBytesField(value: &self.clientDataJson) }()
+      default: break
+      }
+    }
+  }
+
+  public func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
+    if !self.publicKey.isEmpty {
+      try visitor.visitSingularBytesField(value: self.publicKey, fieldNumber: 1)
+    }
+    if !self.signature.isEmpty {
+      try visitor.visitSingularBytesField(value: self.signature, fieldNumber: 2)
+    }
+    if !self.authenticatorData.isEmpty {
+      try visitor.visitSingularBytesField(value: self.authenticatorData, fieldNumber: 3)
+    }
+    if !self.clientDataJson.isEmpty {
+      try visitor.visitSingularBytesField(value: self.clientDataJson, fieldNumber: 4)
+    }
+    try unknownFields.traverse(visitor: &visitor)
+  }
+
+  public static func ==(lhs: Xmtp_Identity_Associations_RecoverablePasskeySignature, rhs: Xmtp_Identity_Associations_RecoverablePasskeySignature) -> Bool {
+    if lhs.publicKey != rhs.publicKey {return false}
+    if lhs.signature != rhs.signature {return false}
+    if lhs.authenticatorData != rhs.authenticatorData {return false}
+    if lhs.clientDataJson != rhs.clientDataJson {return false}
+    if lhs.unknownFields != rhs.unknownFields {return false}
+    return true
+  }
+}
+
 extension Xmtp_Identity_Associations_LegacyDelegatedSignature: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
   public static let protoMessageName: String = _protobuf_package + ".LegacyDelegatedSignature"
   public static let _protobuf_nameMap: SwiftProtobuf._NameMap = [
@@ -342,6 +420,7 @@ extension Xmtp_Identity_Associations_Signature: SwiftProtobuf.Message, SwiftProt
     2: .standard(proto: "erc_6492"),
     3: .standard(proto: "installation_key"),
     4: .standard(proto: "delegated_erc_191"),
+    5: .same(proto: "passkey"),
   ]
 
   public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
@@ -402,6 +481,19 @@ extension Xmtp_Identity_Associations_Signature: SwiftProtobuf.Message, SwiftProt
           self.signature = .delegatedErc191(v)
         }
       }()
+      case 5: try {
+        var v: Xmtp_Identity_Associations_RecoverablePasskeySignature?
+        var hadOneofValue = false
+        if let current = self.signature {
+          hadOneofValue = true
+          if case .passkey(let m) = current {v = m}
+        }
+        try decoder.decodeSingularMessageField(value: &v)
+        if let v = v {
+          if hadOneofValue {try decoder.handleConflictingOneOf()}
+          self.signature = .passkey(v)
+        }
+      }()
       default: break
       }
     }
@@ -428,6 +520,10 @@ extension Xmtp_Identity_Associations_Signature: SwiftProtobuf.Message, SwiftProt
     case .delegatedErc191?: try {
       guard case .delegatedErc191(let v)? = self.signature else { preconditionFailure() }
       try visitor.visitSingularMessageField(value: v, fieldNumber: 4)
+    }()
+    case .passkey?: try {
+      guard case .passkey(let v)? = self.signature else { preconditionFailure() }
+      try visitor.visitSingularMessageField(value: v, fieldNumber: 5)
     }()
     case nil: break
     }

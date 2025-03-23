@@ -243,7 +243,9 @@ public struct Xmtp_Identity_Api_V1_GetInboxIdsRequest: Sendable {
     // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
     // methods supported on all messages.
 
-    public var address: String = String()
+    public var identifier: String = String()
+
+    public var identifierKind: Xmtp_Identity_Associations_IdentifierKind = .unspecified
 
     public var unknownFields = SwiftProtobuf.UnknownStorage()
 
@@ -269,7 +271,7 @@ public struct Xmtp_Identity_Api_V1_GetInboxIdsResponse: Sendable {
     // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
     // methods supported on all messages.
 
-    public var address: String = String()
+    public var identifier: String = String()
 
     public var inboxID: String {
       get {return _inboxID ?? String()}
@@ -279,6 +281,8 @@ public struct Xmtp_Identity_Api_V1_GetInboxIdsResponse: Sendable {
     public var hasInboxID: Bool {return self._inboxID != nil}
     /// Clears the value of `inboxID`. Subsequent reads from it will return its default value.
     public mutating func clearInboxID() {self._inboxID = nil}
+
+    public var identifierKind: Xmtp_Identity_Associations_IdentifierKind = .unspecified
 
     public var unknownFields = SwiftProtobuf.UnknownStorage()
 
@@ -738,7 +742,8 @@ extension Xmtp_Identity_Api_V1_GetInboxIdsRequest: SwiftProtobuf.Message, SwiftP
 extension Xmtp_Identity_Api_V1_GetInboxIdsRequest.Request: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
   public static let protoMessageName: String = Xmtp_Identity_Api_V1_GetInboxIdsRequest.protoMessageName + ".Request"
   public static let _protobuf_nameMap: SwiftProtobuf._NameMap = [
-    1: .same(proto: "address"),
+    1: .same(proto: "identifier"),
+    2: .standard(proto: "identifier_kind"),
   ]
 
   public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
@@ -747,21 +752,26 @@ extension Xmtp_Identity_Api_V1_GetInboxIdsRequest.Request: SwiftProtobuf.Message
       // allocates stack space for every case branch when no optimizations are
       // enabled. https://github.com/apple/swift-protobuf/issues/1034
       switch fieldNumber {
-      case 1: try { try decoder.decodeSingularStringField(value: &self.address) }()
+      case 1: try { try decoder.decodeSingularStringField(value: &self.identifier) }()
+      case 2: try { try decoder.decodeSingularEnumField(value: &self.identifierKind) }()
       default: break
       }
     }
   }
 
   public func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
-    if !self.address.isEmpty {
-      try visitor.visitSingularStringField(value: self.address, fieldNumber: 1)
+    if !self.identifier.isEmpty {
+      try visitor.visitSingularStringField(value: self.identifier, fieldNumber: 1)
+    }
+    if self.identifierKind != .unspecified {
+      try visitor.visitSingularEnumField(value: self.identifierKind, fieldNumber: 2)
     }
     try unknownFields.traverse(visitor: &visitor)
   }
 
   public static func ==(lhs: Xmtp_Identity_Api_V1_GetInboxIdsRequest.Request, rhs: Xmtp_Identity_Api_V1_GetInboxIdsRequest.Request) -> Bool {
-    if lhs.address != rhs.address {return false}
+    if lhs.identifier != rhs.identifier {return false}
+    if lhs.identifierKind != rhs.identifierKind {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
   }
@@ -802,8 +812,9 @@ extension Xmtp_Identity_Api_V1_GetInboxIdsResponse: SwiftProtobuf.Message, Swift
 extension Xmtp_Identity_Api_V1_GetInboxIdsResponse.Response: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
   public static let protoMessageName: String = Xmtp_Identity_Api_V1_GetInboxIdsResponse.protoMessageName + ".Response"
   public static let _protobuf_nameMap: SwiftProtobuf._NameMap = [
-    1: .same(proto: "address"),
+    1: .same(proto: "identifier"),
     2: .standard(proto: "inbox_id"),
+    3: .standard(proto: "identifier_kind"),
   ]
 
   public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
@@ -812,8 +823,9 @@ extension Xmtp_Identity_Api_V1_GetInboxIdsResponse.Response: SwiftProtobuf.Messa
       // allocates stack space for every case branch when no optimizations are
       // enabled. https://github.com/apple/swift-protobuf/issues/1034
       switch fieldNumber {
-      case 1: try { try decoder.decodeSingularStringField(value: &self.address) }()
+      case 1: try { try decoder.decodeSingularStringField(value: &self.identifier) }()
       case 2: try { try decoder.decodeSingularStringField(value: &self._inboxID) }()
+      case 3: try { try decoder.decodeSingularEnumField(value: &self.identifierKind) }()
       default: break
       }
     }
@@ -824,18 +836,22 @@ extension Xmtp_Identity_Api_V1_GetInboxIdsResponse.Response: SwiftProtobuf.Messa
     // allocates stack space for every if/case branch local when no optimizations
     // are enabled. https://github.com/apple/swift-protobuf/issues/1034 and
     // https://github.com/apple/swift-protobuf/issues/1182
-    if !self.address.isEmpty {
-      try visitor.visitSingularStringField(value: self.address, fieldNumber: 1)
+    if !self.identifier.isEmpty {
+      try visitor.visitSingularStringField(value: self.identifier, fieldNumber: 1)
     }
     try { if let v = self._inboxID {
       try visitor.visitSingularStringField(value: v, fieldNumber: 2)
     } }()
+    if self.identifierKind != .unspecified {
+      try visitor.visitSingularEnumField(value: self.identifierKind, fieldNumber: 3)
+    }
     try unknownFields.traverse(visitor: &visitor)
   }
 
   public static func ==(lhs: Xmtp_Identity_Api_V1_GetInboxIdsResponse.Response, rhs: Xmtp_Identity_Api_V1_GetInboxIdsResponse.Response) -> Bool {
-    if lhs.address != rhs.address {return false}
+    if lhs.identifier != rhs.identifier {return false}
     if lhs._inboxID != rhs._inboxID {return false}
+    if lhs.identifierKind != rhs.identifierKind {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
   }

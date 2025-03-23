@@ -23,6 +23,47 @@ fileprivate struct _GeneratedWithProtocGenSwiftVersion: SwiftProtobuf.ProtobufAP
   typealias Version = _2
 }
 
+/// List of identity kinds
+public enum Xmtp_Identity_Associations_IdentifierKind: SwiftProtobuf.Enum, Swift.CaseIterable {
+  public typealias RawValue = Int
+
+  /// Ethereum on old clients
+  case unspecified // = 0
+  case ethereum // = 1
+  case passkey // = 2
+  case UNRECOGNIZED(Int)
+
+  public init() {
+    self = .unspecified
+  }
+
+  public init?(rawValue: Int) {
+    switch rawValue {
+    case 0: self = .unspecified
+    case 1: self = .ethereum
+    case 2: self = .passkey
+    default: self = .UNRECOGNIZED(rawValue)
+    }
+  }
+
+  public var rawValue: Int {
+    switch self {
+    case .unspecified: return 0
+    case .ethereum: return 1
+    case .passkey: return 2
+    case .UNRECOGNIZED(let i): return i
+    }
+  }
+
+  // The compiler won't synthesize support with the UNRECOGNIZED case.
+  public static let allCases: [Xmtp_Identity_Associations_IdentifierKind] = [
+    .unspecified,
+    .ethereum,
+    .passkey,
+  ]
+
+}
+
 /// The identifier for a member of an XID
 public struct Xmtp_Identity_Associations_MemberIdentifier: @unchecked Sendable {
   // SwiftProtobuf.Message conformance is added in an extension below. See the
@@ -31,12 +72,12 @@ public struct Xmtp_Identity_Associations_MemberIdentifier: @unchecked Sendable {
 
   public var kind: Xmtp_Identity_Associations_MemberIdentifier.OneOf_Kind? = nil
 
-  public var address: String {
+  public var ethereumAddress: String {
     get {
-      if case .address(let v)? = kind {return v}
+      if case .ethereumAddress(let v)? = kind {return v}
       return String()
     }
-    set {kind = .address(newValue)}
+    set {kind = .ethereumAddress(newValue)}
   }
 
   public var installationPublicKey: Data {
@@ -47,15 +88,48 @@ public struct Xmtp_Identity_Associations_MemberIdentifier: @unchecked Sendable {
     set {kind = .installationPublicKey(newValue)}
   }
 
+  public var passkey: Xmtp_Identity_Associations_Passkey {
+    get {
+      if case .passkey(let v)? = kind {return v}
+      return Xmtp_Identity_Associations_Passkey()
+    }
+    set {kind = .passkey(newValue)}
+  }
+
   public var unknownFields = SwiftProtobuf.UnknownStorage()
 
   public enum OneOf_Kind: Equatable, @unchecked Sendable {
-    case address(String)
+    case ethereumAddress(String)
     case installationPublicKey(Data)
+    case passkey(Xmtp_Identity_Associations_Passkey)
 
   }
 
   public init() {}
+}
+
+/// Passkey identifier
+public struct Xmtp_Identity_Associations_Passkey: @unchecked Sendable {
+  // SwiftProtobuf.Message conformance is added in an extension below. See the
+  // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
+  // methods supported on all messages.
+
+  public var key: Data = Data()
+
+  public var relyingParty: String {
+    get {return _relyingParty ?? String()}
+    set {_relyingParty = newValue}
+  }
+  /// Returns true if `relyingParty` has been explicitly set.
+  public var hasRelyingParty: Bool {return self._relyingParty != nil}
+  /// Clears the value of `relyingParty`. Subsequent reads from it will return its default value.
+  public mutating func clearRelyingParty() {self._relyingParty = nil}
+
+  public var unknownFields = SwiftProtobuf.UnknownStorage()
+
+  public init() {}
+
+  fileprivate var _relyingParty: String? = nil
 }
 
 /// single member that optionally indicates the member that added them
@@ -119,25 +193,38 @@ public struct Xmtp_Identity_Associations_CreateInbox: Sendable {
   // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
   // methods supported on all messages.
 
-  public var initialAddress: String = String()
+  public var initialIdentifier: String = String()
 
   public var nonce: UInt64 = 0
 
   /// Must be an addressable member
-  public var initialAddressSignature: Xmtp_Identity_Associations_Signature {
-    get {return _initialAddressSignature ?? Xmtp_Identity_Associations_Signature()}
-    set {_initialAddressSignature = newValue}
+  public var initialIdentifierSignature: Xmtp_Identity_Associations_Signature {
+    get {return _initialIdentifierSignature ?? Xmtp_Identity_Associations_Signature()}
+    set {_initialIdentifierSignature = newValue}
   }
-  /// Returns true if `initialAddressSignature` has been explicitly set.
-  public var hasInitialAddressSignature: Bool {return self._initialAddressSignature != nil}
-  /// Clears the value of `initialAddressSignature`. Subsequent reads from it will return its default value.
-  public mutating func clearInitialAddressSignature() {self._initialAddressSignature = nil}
+  /// Returns true if `initialIdentifierSignature` has been explicitly set.
+  public var hasInitialIdentifierSignature: Bool {return self._initialIdentifierSignature != nil}
+  /// Clears the value of `initialIdentifierSignature`. Subsequent reads from it will return its default value.
+  public mutating func clearInitialIdentifierSignature() {self._initialIdentifierSignature = nil}
+
+  public var initialIdentifierKind: Xmtp_Identity_Associations_IdentifierKind = .unspecified
+
+  /// Should be provided if identifier kind is passkey
+  public var relyingParty: String {
+    get {return _relyingParty ?? String()}
+    set {_relyingParty = newValue}
+  }
+  /// Returns true if `relyingParty` has been explicitly set.
+  public var hasRelyingParty: Bool {return self._relyingParty != nil}
+  /// Clears the value of `relyingParty`. Subsequent reads from it will return its default value.
+  public mutating func clearRelyingParty() {self._relyingParty = nil}
 
   public var unknownFields = SwiftProtobuf.UnknownStorage()
 
   public init() {}
 
-  fileprivate var _initialAddressSignature: Xmtp_Identity_Associations_Signature? = nil
+  fileprivate var _initialIdentifierSignature: Xmtp_Identity_Associations_Signature? = nil
+  fileprivate var _relyingParty: String? = nil
 }
 
 /// Adds a new member for an XID - either an addressable member such as a
@@ -176,6 +263,16 @@ public struct Xmtp_Identity_Associations_AddAssociation: Sendable {
   /// Clears the value of `newMemberSignature`. Subsequent reads from it will return its default value.
   public mutating func clearNewMemberSignature() {self._newMemberSignature = nil}
 
+  /// Should be provided if identifier kind is passkey
+  public var relyingParty: String {
+    get {return _relyingParty ?? String()}
+    set {_relyingParty = newValue}
+  }
+  /// Returns true if `relyingParty` has been explicitly set.
+  public var hasRelyingParty: Bool {return self._relyingParty != nil}
+  /// Clears the value of `relyingParty`. Subsequent reads from it will return its default value.
+  public mutating func clearRelyingParty() {self._relyingParty = nil}
+
   public var unknownFields = SwiftProtobuf.UnknownStorage()
 
   public init() {}
@@ -183,6 +280,7 @@ public struct Xmtp_Identity_Associations_AddAssociation: Sendable {
   fileprivate var _newMemberIdentifier: Xmtp_Identity_Associations_MemberIdentifier? = nil
   fileprivate var _existingMemberSignature: Xmtp_Identity_Associations_Signature? = nil
   fileprivate var _newMemberSignature: Xmtp_Identity_Associations_Signature? = nil
+  fileprivate var _relyingParty: String? = nil
 }
 
 /// Revokes a member from an XID. The recovery address must sign the revocation.
@@ -200,47 +298,60 @@ public struct Xmtp_Identity_Associations_RevokeAssociation: Sendable {
   /// Clears the value of `memberToRevoke`. Subsequent reads from it will return its default value.
   public mutating func clearMemberToRevoke() {self._memberToRevoke = nil}
 
-  public var recoveryAddressSignature: Xmtp_Identity_Associations_Signature {
-    get {return _recoveryAddressSignature ?? Xmtp_Identity_Associations_Signature()}
-    set {_recoveryAddressSignature = newValue}
+  public var recoveryIdentifierSignature: Xmtp_Identity_Associations_Signature {
+    get {return _recoveryIdentifierSignature ?? Xmtp_Identity_Associations_Signature()}
+    set {_recoveryIdentifierSignature = newValue}
   }
-  /// Returns true if `recoveryAddressSignature` has been explicitly set.
-  public var hasRecoveryAddressSignature: Bool {return self._recoveryAddressSignature != nil}
-  /// Clears the value of `recoveryAddressSignature`. Subsequent reads from it will return its default value.
-  public mutating func clearRecoveryAddressSignature() {self._recoveryAddressSignature = nil}
+  /// Returns true if `recoveryIdentifierSignature` has been explicitly set.
+  public var hasRecoveryIdentifierSignature: Bool {return self._recoveryIdentifierSignature != nil}
+  /// Clears the value of `recoveryIdentifierSignature`. Subsequent reads from it will return its default value.
+  public mutating func clearRecoveryIdentifierSignature() {self._recoveryIdentifierSignature = nil}
 
   public var unknownFields = SwiftProtobuf.UnknownStorage()
 
   public init() {}
 
   fileprivate var _memberToRevoke: Xmtp_Identity_Associations_MemberIdentifier? = nil
-  fileprivate var _recoveryAddressSignature: Xmtp_Identity_Associations_Signature? = nil
+  fileprivate var _recoveryIdentifierSignature: Xmtp_Identity_Associations_Signature? = nil
 }
 
-/// Changes the recovery address for an XID. The recovery address is not required
+/// Changes the recovery identifier for an XID. The recovery identifier is not required
 /// to be a member of the XID. In addition to being able to add members, the
-/// recovery address can also revoke members.
+/// recovery identifier can also revoke members.
 public struct Xmtp_Identity_Associations_ChangeRecoveryAddress: Sendable {
   // SwiftProtobuf.Message conformance is added in an extension below. See the
   // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
   // methods supported on all messages.
 
-  public var newRecoveryAddress: String = String()
+  public var newRecoveryIdentifier: String = String()
 
-  public var existingRecoveryAddressSignature: Xmtp_Identity_Associations_Signature {
-    get {return _existingRecoveryAddressSignature ?? Xmtp_Identity_Associations_Signature()}
-    set {_existingRecoveryAddressSignature = newValue}
+  public var existingRecoveryIdentifierSignature: Xmtp_Identity_Associations_Signature {
+    get {return _existingRecoveryIdentifierSignature ?? Xmtp_Identity_Associations_Signature()}
+    set {_existingRecoveryIdentifierSignature = newValue}
   }
-  /// Returns true if `existingRecoveryAddressSignature` has been explicitly set.
-  public var hasExistingRecoveryAddressSignature: Bool {return self._existingRecoveryAddressSignature != nil}
-  /// Clears the value of `existingRecoveryAddressSignature`. Subsequent reads from it will return its default value.
-  public mutating func clearExistingRecoveryAddressSignature() {self._existingRecoveryAddressSignature = nil}
+  /// Returns true if `existingRecoveryIdentifierSignature` has been explicitly set.
+  public var hasExistingRecoveryIdentifierSignature: Bool {return self._existingRecoveryIdentifierSignature != nil}
+  /// Clears the value of `existingRecoveryIdentifierSignature`. Subsequent reads from it will return its default value.
+  public mutating func clearExistingRecoveryIdentifierSignature() {self._existingRecoveryIdentifierSignature = nil}
+
+  public var newRecoveryIdentifierKind: Xmtp_Identity_Associations_IdentifierKind = .unspecified
+
+  /// Should be provided if identifier kind is passkey
+  public var relyingParty: String {
+    get {return _relyingParty ?? String()}
+    set {_relyingParty = newValue}
+  }
+  /// Returns true if `relyingParty` has been explicitly set.
+  public var hasRelyingParty: Bool {return self._relyingParty != nil}
+  /// Clears the value of `relyingParty`. Subsequent reads from it will return its default value.
+  public mutating func clearRelyingParty() {self._relyingParty = nil}
 
   public var unknownFields = SwiftProtobuf.UnknownStorage()
 
   public init() {}
 
-  fileprivate var _existingRecoveryAddressSignature: Xmtp_Identity_Associations_Signature? = nil
+  fileprivate var _existingRecoveryIdentifierSignature: Xmtp_Identity_Associations_Signature? = nil
+  fileprivate var _relyingParty: String? = nil
 }
 
 /// A single identity operation
@@ -361,13 +472,27 @@ public struct Xmtp_Identity_Associations_AssociationState: @unchecked Sendable {
 
   public var members: [Xmtp_Identity_Associations_MemberMap] = []
 
-  public var recoveryAddress: String = String()
+  public var recoveryIdentifier: String = String()
 
   public var seenSignatures: [Data] = []
+
+  public var recoveryIdentifierKind: Xmtp_Identity_Associations_IdentifierKind = .unspecified
+
+  /// Should be provided if identifier kind is passkey
+  public var relyingParty: String {
+    get {return _relyingParty ?? String()}
+    set {_relyingParty = newValue}
+  }
+  /// Returns true if `relyingParty` has been explicitly set.
+  public var hasRelyingParty: Bool {return self._relyingParty != nil}
+  /// Clears the value of `relyingParty`. Subsequent reads from it will return its default value.
+  public mutating func clearRelyingParty() {self._relyingParty = nil}
 
   public var unknownFields = SwiftProtobuf.UnknownStorage()
 
   public init() {}
+
+  fileprivate var _relyingParty: String? = nil
 }
 
 //// state diff between two final AssociationStates
@@ -389,11 +514,20 @@ public struct Xmtp_Identity_Associations_AssociationStateDiff: Sendable {
 
 fileprivate let _protobuf_package = "xmtp.identity.associations"
 
+extension Xmtp_Identity_Associations_IdentifierKind: SwiftProtobuf._ProtoNameProviding {
+  public static let _protobuf_nameMap: SwiftProtobuf._NameMap = [
+    0: .same(proto: "IDENTIFIER_KIND_UNSPECIFIED"),
+    1: .same(proto: "IDENTIFIER_KIND_ETHEREUM"),
+    2: .same(proto: "IDENTIFIER_KIND_PASSKEY"),
+  ]
+}
+
 extension Xmtp_Identity_Associations_MemberIdentifier: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
   public static let protoMessageName: String = _protobuf_package + ".MemberIdentifier"
   public static let _protobuf_nameMap: SwiftProtobuf._NameMap = [
-    1: .same(proto: "address"),
+    1: .standard(proto: "ethereum_address"),
     2: .standard(proto: "installation_public_key"),
+    3: .same(proto: "passkey"),
   ]
 
   public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
@@ -407,7 +541,7 @@ extension Xmtp_Identity_Associations_MemberIdentifier: SwiftProtobuf.Message, Sw
         try decoder.decodeSingularStringField(value: &v)
         if let v = v {
           if self.kind != nil {try decoder.handleConflictingOneOf()}
-          self.kind = .address(v)
+          self.kind = .ethereumAddress(v)
         }
       }()
       case 2: try {
@@ -416,6 +550,19 @@ extension Xmtp_Identity_Associations_MemberIdentifier: SwiftProtobuf.Message, Sw
         if let v = v {
           if self.kind != nil {try decoder.handleConflictingOneOf()}
           self.kind = .installationPublicKey(v)
+        }
+      }()
+      case 3: try {
+        var v: Xmtp_Identity_Associations_Passkey?
+        var hadOneofValue = false
+        if let current = self.kind {
+          hadOneofValue = true
+          if case .passkey(let m) = current {v = m}
+        }
+        try decoder.decodeSingularMessageField(value: &v)
+        if let v = v {
+          if hadOneofValue {try decoder.handleConflictingOneOf()}
+          self.kind = .passkey(v)
         }
       }()
       default: break
@@ -429,13 +576,17 @@ extension Xmtp_Identity_Associations_MemberIdentifier: SwiftProtobuf.Message, Sw
     // are enabled. https://github.com/apple/swift-protobuf/issues/1034 and
     // https://github.com/apple/swift-protobuf/issues/1182
     switch self.kind {
-    case .address?: try {
-      guard case .address(let v)? = self.kind else { preconditionFailure() }
+    case .ethereumAddress?: try {
+      guard case .ethereumAddress(let v)? = self.kind else { preconditionFailure() }
       try visitor.visitSingularStringField(value: v, fieldNumber: 1)
     }()
     case .installationPublicKey?: try {
       guard case .installationPublicKey(let v)? = self.kind else { preconditionFailure() }
       try visitor.visitSingularBytesField(value: v, fieldNumber: 2)
+    }()
+    case .passkey?: try {
+      guard case .passkey(let v)? = self.kind else { preconditionFailure() }
+      try visitor.visitSingularMessageField(value: v, fieldNumber: 3)
     }()
     case nil: break
     }
@@ -444,6 +595,48 @@ extension Xmtp_Identity_Associations_MemberIdentifier: SwiftProtobuf.Message, Sw
 
   public static func ==(lhs: Xmtp_Identity_Associations_MemberIdentifier, rhs: Xmtp_Identity_Associations_MemberIdentifier) -> Bool {
     if lhs.kind != rhs.kind {return false}
+    if lhs.unknownFields != rhs.unknownFields {return false}
+    return true
+  }
+}
+
+extension Xmtp_Identity_Associations_Passkey: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
+  public static let protoMessageName: String = _protobuf_package + ".Passkey"
+  public static let _protobuf_nameMap: SwiftProtobuf._NameMap = [
+    1: .same(proto: "key"),
+    2: .standard(proto: "relying_party"),
+  ]
+
+  public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
+    while let fieldNumber = try decoder.nextFieldNumber() {
+      // The use of inline closures is to circumvent an issue where the compiler
+      // allocates stack space for every case branch when no optimizations are
+      // enabled. https://github.com/apple/swift-protobuf/issues/1034
+      switch fieldNumber {
+      case 1: try { try decoder.decodeSingularBytesField(value: &self.key) }()
+      case 2: try { try decoder.decodeSingularStringField(value: &self._relyingParty) }()
+      default: break
+      }
+    }
+  }
+
+  public func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
+    // The use of inline closures is to circumvent an issue where the compiler
+    // allocates stack space for every if/case branch local when no optimizations
+    // are enabled. https://github.com/apple/swift-protobuf/issues/1034 and
+    // https://github.com/apple/swift-protobuf/issues/1182
+    if !self.key.isEmpty {
+      try visitor.visitSingularBytesField(value: self.key, fieldNumber: 1)
+    }
+    try { if let v = self._relyingParty {
+      try visitor.visitSingularStringField(value: v, fieldNumber: 2)
+    } }()
+    try unknownFields.traverse(visitor: &visitor)
+  }
+
+  public static func ==(lhs: Xmtp_Identity_Associations_Passkey, rhs: Xmtp_Identity_Associations_Passkey) -> Bool {
+    if lhs.key != rhs.key {return false}
+    if lhs._relyingParty != rhs._relyingParty {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
   }
@@ -506,9 +699,11 @@ extension Xmtp_Identity_Associations_Member: SwiftProtobuf.Message, SwiftProtobu
 extension Xmtp_Identity_Associations_CreateInbox: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
   public static let protoMessageName: String = _protobuf_package + ".CreateInbox"
   public static let _protobuf_nameMap: SwiftProtobuf._NameMap = [
-    1: .standard(proto: "initial_address"),
+    1: .standard(proto: "initial_identifier"),
     2: .same(proto: "nonce"),
-    3: .standard(proto: "initial_address_signature"),
+    3: .standard(proto: "initial_identifier_signature"),
+    4: .standard(proto: "initial_identifier_kind"),
+    5: .standard(proto: "relying_party"),
   ]
 
   public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
@@ -517,9 +712,11 @@ extension Xmtp_Identity_Associations_CreateInbox: SwiftProtobuf.Message, SwiftPr
       // allocates stack space for every case branch when no optimizations are
       // enabled. https://github.com/apple/swift-protobuf/issues/1034
       switch fieldNumber {
-      case 1: try { try decoder.decodeSingularStringField(value: &self.initialAddress) }()
+      case 1: try { try decoder.decodeSingularStringField(value: &self.initialIdentifier) }()
       case 2: try { try decoder.decodeSingularUInt64Field(value: &self.nonce) }()
-      case 3: try { try decoder.decodeSingularMessageField(value: &self._initialAddressSignature) }()
+      case 3: try { try decoder.decodeSingularMessageField(value: &self._initialIdentifierSignature) }()
+      case 4: try { try decoder.decodeSingularEnumField(value: &self.initialIdentifierKind) }()
+      case 5: try { try decoder.decodeSingularStringField(value: &self._relyingParty) }()
       default: break
       }
     }
@@ -530,22 +727,30 @@ extension Xmtp_Identity_Associations_CreateInbox: SwiftProtobuf.Message, SwiftPr
     // allocates stack space for every if/case branch local when no optimizations
     // are enabled. https://github.com/apple/swift-protobuf/issues/1034 and
     // https://github.com/apple/swift-protobuf/issues/1182
-    if !self.initialAddress.isEmpty {
-      try visitor.visitSingularStringField(value: self.initialAddress, fieldNumber: 1)
+    if !self.initialIdentifier.isEmpty {
+      try visitor.visitSingularStringField(value: self.initialIdentifier, fieldNumber: 1)
     }
     if self.nonce != 0 {
       try visitor.visitSingularUInt64Field(value: self.nonce, fieldNumber: 2)
     }
-    try { if let v = self._initialAddressSignature {
+    try { if let v = self._initialIdentifierSignature {
       try visitor.visitSingularMessageField(value: v, fieldNumber: 3)
+    } }()
+    if self.initialIdentifierKind != .unspecified {
+      try visitor.visitSingularEnumField(value: self.initialIdentifierKind, fieldNumber: 4)
+    }
+    try { if let v = self._relyingParty {
+      try visitor.visitSingularStringField(value: v, fieldNumber: 5)
     } }()
     try unknownFields.traverse(visitor: &visitor)
   }
 
   public static func ==(lhs: Xmtp_Identity_Associations_CreateInbox, rhs: Xmtp_Identity_Associations_CreateInbox) -> Bool {
-    if lhs.initialAddress != rhs.initialAddress {return false}
+    if lhs.initialIdentifier != rhs.initialIdentifier {return false}
     if lhs.nonce != rhs.nonce {return false}
-    if lhs._initialAddressSignature != rhs._initialAddressSignature {return false}
+    if lhs._initialIdentifierSignature != rhs._initialIdentifierSignature {return false}
+    if lhs.initialIdentifierKind != rhs.initialIdentifierKind {return false}
+    if lhs._relyingParty != rhs._relyingParty {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
   }
@@ -557,6 +762,7 @@ extension Xmtp_Identity_Associations_AddAssociation: SwiftProtobuf.Message, Swif
     1: .standard(proto: "new_member_identifier"),
     2: .standard(proto: "existing_member_signature"),
     3: .standard(proto: "new_member_signature"),
+    4: .standard(proto: "relying_party"),
   ]
 
   public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
@@ -568,6 +774,7 @@ extension Xmtp_Identity_Associations_AddAssociation: SwiftProtobuf.Message, Swif
       case 1: try { try decoder.decodeSingularMessageField(value: &self._newMemberIdentifier) }()
       case 2: try { try decoder.decodeSingularMessageField(value: &self._existingMemberSignature) }()
       case 3: try { try decoder.decodeSingularMessageField(value: &self._newMemberSignature) }()
+      case 4: try { try decoder.decodeSingularStringField(value: &self._relyingParty) }()
       default: break
       }
     }
@@ -587,6 +794,9 @@ extension Xmtp_Identity_Associations_AddAssociation: SwiftProtobuf.Message, Swif
     try { if let v = self._newMemberSignature {
       try visitor.visitSingularMessageField(value: v, fieldNumber: 3)
     } }()
+    try { if let v = self._relyingParty {
+      try visitor.visitSingularStringField(value: v, fieldNumber: 4)
+    } }()
     try unknownFields.traverse(visitor: &visitor)
   }
 
@@ -594,6 +804,7 @@ extension Xmtp_Identity_Associations_AddAssociation: SwiftProtobuf.Message, Swif
     if lhs._newMemberIdentifier != rhs._newMemberIdentifier {return false}
     if lhs._existingMemberSignature != rhs._existingMemberSignature {return false}
     if lhs._newMemberSignature != rhs._newMemberSignature {return false}
+    if lhs._relyingParty != rhs._relyingParty {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
   }
@@ -603,7 +814,7 @@ extension Xmtp_Identity_Associations_RevokeAssociation: SwiftProtobuf.Message, S
   public static let protoMessageName: String = _protobuf_package + ".RevokeAssociation"
   public static let _protobuf_nameMap: SwiftProtobuf._NameMap = [
     1: .standard(proto: "member_to_revoke"),
-    2: .standard(proto: "recovery_address_signature"),
+    2: .standard(proto: "recovery_identifier_signature"),
   ]
 
   public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
@@ -613,7 +824,7 @@ extension Xmtp_Identity_Associations_RevokeAssociation: SwiftProtobuf.Message, S
       // enabled. https://github.com/apple/swift-protobuf/issues/1034
       switch fieldNumber {
       case 1: try { try decoder.decodeSingularMessageField(value: &self._memberToRevoke) }()
-      case 2: try { try decoder.decodeSingularMessageField(value: &self._recoveryAddressSignature) }()
+      case 2: try { try decoder.decodeSingularMessageField(value: &self._recoveryIdentifierSignature) }()
       default: break
       }
     }
@@ -627,7 +838,7 @@ extension Xmtp_Identity_Associations_RevokeAssociation: SwiftProtobuf.Message, S
     try { if let v = self._memberToRevoke {
       try visitor.visitSingularMessageField(value: v, fieldNumber: 1)
     } }()
-    try { if let v = self._recoveryAddressSignature {
+    try { if let v = self._recoveryIdentifierSignature {
       try visitor.visitSingularMessageField(value: v, fieldNumber: 2)
     } }()
     try unknownFields.traverse(visitor: &visitor)
@@ -635,7 +846,7 @@ extension Xmtp_Identity_Associations_RevokeAssociation: SwiftProtobuf.Message, S
 
   public static func ==(lhs: Xmtp_Identity_Associations_RevokeAssociation, rhs: Xmtp_Identity_Associations_RevokeAssociation) -> Bool {
     if lhs._memberToRevoke != rhs._memberToRevoke {return false}
-    if lhs._recoveryAddressSignature != rhs._recoveryAddressSignature {return false}
+    if lhs._recoveryIdentifierSignature != rhs._recoveryIdentifierSignature {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
   }
@@ -644,8 +855,10 @@ extension Xmtp_Identity_Associations_RevokeAssociation: SwiftProtobuf.Message, S
 extension Xmtp_Identity_Associations_ChangeRecoveryAddress: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
   public static let protoMessageName: String = _protobuf_package + ".ChangeRecoveryAddress"
   public static let _protobuf_nameMap: SwiftProtobuf._NameMap = [
-    1: .standard(proto: "new_recovery_address"),
-    2: .standard(proto: "existing_recovery_address_signature"),
+    1: .standard(proto: "new_recovery_identifier"),
+    2: .standard(proto: "existing_recovery_identifier_signature"),
+    3: .standard(proto: "new_recovery_identifier_kind"),
+    4: .standard(proto: "relying_party"),
   ]
 
   public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
@@ -654,8 +867,10 @@ extension Xmtp_Identity_Associations_ChangeRecoveryAddress: SwiftProtobuf.Messag
       // allocates stack space for every case branch when no optimizations are
       // enabled. https://github.com/apple/swift-protobuf/issues/1034
       switch fieldNumber {
-      case 1: try { try decoder.decodeSingularStringField(value: &self.newRecoveryAddress) }()
-      case 2: try { try decoder.decodeSingularMessageField(value: &self._existingRecoveryAddressSignature) }()
+      case 1: try { try decoder.decodeSingularStringField(value: &self.newRecoveryIdentifier) }()
+      case 2: try { try decoder.decodeSingularMessageField(value: &self._existingRecoveryIdentifierSignature) }()
+      case 3: try { try decoder.decodeSingularEnumField(value: &self.newRecoveryIdentifierKind) }()
+      case 4: try { try decoder.decodeSingularStringField(value: &self._relyingParty) }()
       default: break
       }
     }
@@ -666,18 +881,26 @@ extension Xmtp_Identity_Associations_ChangeRecoveryAddress: SwiftProtobuf.Messag
     // allocates stack space for every if/case branch local when no optimizations
     // are enabled. https://github.com/apple/swift-protobuf/issues/1034 and
     // https://github.com/apple/swift-protobuf/issues/1182
-    if !self.newRecoveryAddress.isEmpty {
-      try visitor.visitSingularStringField(value: self.newRecoveryAddress, fieldNumber: 1)
+    if !self.newRecoveryIdentifier.isEmpty {
+      try visitor.visitSingularStringField(value: self.newRecoveryIdentifier, fieldNumber: 1)
     }
-    try { if let v = self._existingRecoveryAddressSignature {
+    try { if let v = self._existingRecoveryIdentifierSignature {
       try visitor.visitSingularMessageField(value: v, fieldNumber: 2)
+    } }()
+    if self.newRecoveryIdentifierKind != .unspecified {
+      try visitor.visitSingularEnumField(value: self.newRecoveryIdentifierKind, fieldNumber: 3)
+    }
+    try { if let v = self._relyingParty {
+      try visitor.visitSingularStringField(value: v, fieldNumber: 4)
     } }()
     try unknownFields.traverse(visitor: &visitor)
   }
 
   public static func ==(lhs: Xmtp_Identity_Associations_ChangeRecoveryAddress, rhs: Xmtp_Identity_Associations_ChangeRecoveryAddress) -> Bool {
-    if lhs.newRecoveryAddress != rhs.newRecoveryAddress {return false}
-    if lhs._existingRecoveryAddressSignature != rhs._existingRecoveryAddressSignature {return false}
+    if lhs.newRecoveryIdentifier != rhs.newRecoveryIdentifier {return false}
+    if lhs._existingRecoveryIdentifierSignature != rhs._existingRecoveryIdentifierSignature {return false}
+    if lhs.newRecoveryIdentifierKind != rhs.newRecoveryIdentifierKind {return false}
+    if lhs._relyingParty != rhs._relyingParty {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
   }
@@ -880,8 +1103,10 @@ extension Xmtp_Identity_Associations_AssociationState: SwiftProtobuf.Message, Sw
   public static let _protobuf_nameMap: SwiftProtobuf._NameMap = [
     1: .standard(proto: "inbox_id"),
     2: .same(proto: "members"),
-    3: .standard(proto: "recovery_address"),
+    3: .standard(proto: "recovery_identifier"),
     4: .standard(proto: "seen_signatures"),
+    5: .standard(proto: "recovery_identifier_kind"),
+    6: .standard(proto: "relying_party"),
   ]
 
   public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
@@ -892,34 +1117,48 @@ extension Xmtp_Identity_Associations_AssociationState: SwiftProtobuf.Message, Sw
       switch fieldNumber {
       case 1: try { try decoder.decodeSingularStringField(value: &self.inboxID) }()
       case 2: try { try decoder.decodeRepeatedMessageField(value: &self.members) }()
-      case 3: try { try decoder.decodeSingularStringField(value: &self.recoveryAddress) }()
+      case 3: try { try decoder.decodeSingularStringField(value: &self.recoveryIdentifier) }()
       case 4: try { try decoder.decodeRepeatedBytesField(value: &self.seenSignatures) }()
+      case 5: try { try decoder.decodeSingularEnumField(value: &self.recoveryIdentifierKind) }()
+      case 6: try { try decoder.decodeSingularStringField(value: &self._relyingParty) }()
       default: break
       }
     }
   }
 
   public func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
+    // The use of inline closures is to circumvent an issue where the compiler
+    // allocates stack space for every if/case branch local when no optimizations
+    // are enabled. https://github.com/apple/swift-protobuf/issues/1034 and
+    // https://github.com/apple/swift-protobuf/issues/1182
     if !self.inboxID.isEmpty {
       try visitor.visitSingularStringField(value: self.inboxID, fieldNumber: 1)
     }
     if !self.members.isEmpty {
       try visitor.visitRepeatedMessageField(value: self.members, fieldNumber: 2)
     }
-    if !self.recoveryAddress.isEmpty {
-      try visitor.visitSingularStringField(value: self.recoveryAddress, fieldNumber: 3)
+    if !self.recoveryIdentifier.isEmpty {
+      try visitor.visitSingularStringField(value: self.recoveryIdentifier, fieldNumber: 3)
     }
     if !self.seenSignatures.isEmpty {
       try visitor.visitRepeatedBytesField(value: self.seenSignatures, fieldNumber: 4)
     }
+    if self.recoveryIdentifierKind != .unspecified {
+      try visitor.visitSingularEnumField(value: self.recoveryIdentifierKind, fieldNumber: 5)
+    }
+    try { if let v = self._relyingParty {
+      try visitor.visitSingularStringField(value: v, fieldNumber: 6)
+    } }()
     try unknownFields.traverse(visitor: &visitor)
   }
 
   public static func ==(lhs: Xmtp_Identity_Associations_AssociationState, rhs: Xmtp_Identity_Associations_AssociationState) -> Bool {
     if lhs.inboxID != rhs.inboxID {return false}
     if lhs.members != rhs.members {return false}
-    if lhs.recoveryAddress != rhs.recoveryAddress {return false}
+    if lhs.recoveryIdentifier != rhs.recoveryIdentifier {return false}
     if lhs.seenSignatures != rhs.seenSignatures {return false}
+    if lhs.recoveryIdentifierKind != rhs.recoveryIdentifierKind {return false}
+    if lhs._relyingParty != rhs._relyingParty {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
   }
