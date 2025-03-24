@@ -67,7 +67,6 @@ func (f FcmDelivery) Send(ctx context.Context, req interfaces.SendRequest) error
 		"installationId":   req.Installation.Id,
 		"channel":          "chat",
 		"timestampNs":      fmt.Sprint(req.Message.TimestampNs),
-		"senderHmac":       fmt.Sprint(req.MessageContext.SenderHmac),
 	}
 
 	prefix := ""

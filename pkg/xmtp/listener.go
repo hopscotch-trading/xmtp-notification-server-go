@@ -209,7 +209,6 @@ func (l *Listener) deliver(req interfaces.SendRequest) error {
 				zap.String("topic", req.Message.ContentTopic),
 				zap.String("message_type", string(req.MessageContext.MessageType)),
 				zap.Uint64("timestamp_ns", req.Message.TimestampNs),
-				zap.ByteString("sender_hmac", *req.MessageContext.SenderHmac),
 			)
 			return service.Send(ctx, req)
 		}
