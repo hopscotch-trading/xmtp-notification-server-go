@@ -191,6 +191,7 @@ func (l *Listener) shouldDeliver(messageContext interfaces.MessageContext, subsc
 	if subscription.HmacKey != nil && len(subscription.HmacKey.Key) > 0 {
 		isSender := messageContext.IsSender(subscription.HmacKey.Key)
 		if isSender {
+			l.logger.Debug("skipping delivery for message sender", zap.String("topic", subscription.Topic))
 			return false
 		}
 	}
