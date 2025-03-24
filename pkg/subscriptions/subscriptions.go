@@ -148,7 +148,9 @@ func (s SubscriptionsService) GetSubscriptions(ctx context.Context, topic string
 	if err != nil {
 		return nil, err
 	}
-	// s.logger.Info("Results", zap.Any("results", results))
+
+	s.logger.Info("Subscriptions", zap.Any("results", results))
+
 	for _, result := range results {
 		out = append(out, transformResult(result))
 	}

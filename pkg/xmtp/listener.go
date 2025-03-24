@@ -152,6 +152,7 @@ func (l *Listener) processEnvelope(env *v1.Envelope) error {
 	}
 
 	if len(subs) == 0 {
+		l.logger.Warn("no subscriptions found for topic", zap.String("topic", env.ContentTopic))
 		return nil
 	}
 
@@ -211,6 +212,8 @@ func (l *Listener) deliver(req interfaces.SendRequest) error {
 				zap.Uint64("timestamp_ns", req.Message.TimestampNs),
 			)
 			return service.Send(ctx, req)
+		} else {
+			l.logger.Info("Service cannot deliver message", zap.String("delivery_mechanism", string(req.Installation.DeliveryMechanism.Kind)), zap.String("topic", req.Message.ContentTopic))
 		}
 	}
 	l.logger.Info("No delivery service matches request", zap.String("delivery_mechanism", string(req.Installation.DeliveryMechanism.Kind)))
