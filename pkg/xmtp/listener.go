@@ -208,6 +208,8 @@ func (l *Listener) deliver(req interfaces.SendRequest) error {
 			l.logger.Info("active subscription found. sending message",
 				zap.String("topic", req.Message.ContentTopic),
 				zap.String("message_type", string(req.MessageContext.MessageType)),
+				zap.Uint64("timestamp_ns", req.Message.TimestampNs),
+				zap.String("sender_hmac", string(*req.MessageContext.SenderHmac)),
 			)
 			return service.Send(ctx, req)
 		}
