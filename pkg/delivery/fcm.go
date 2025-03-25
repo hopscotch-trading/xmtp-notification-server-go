@@ -61,13 +61,13 @@ func (f FcmDelivery) Send(ctx context.Context, req interfaces.SendRequest) error
 	message := base64.StdEncoding.EncodeToString(req.Message.Message)
 	topic := req.Message.ContentTopic
 	data := map[string]string{
-		"topic":            topic,
-		"encryptedMessage": message,
-		"messageType":      string(req.MessageContext.MessageType),
-		"installationId":   req.Installation.Id,
-		"channel":          "chat",
-		"timestampNs":      fmt.Sprint(req.Message.TimestampNs),
-		"tag":              req.IdempotencyKey,
+		"topic": topic,
+		// "encryptedMessage": message,
+		"messageType":    string(req.MessageContext.MessageType),
+		"installationId": req.Installation.Id,
+		"channel":        "chat",
+		"timestampNs":    fmt.Sprint(req.Message.TimestampNs),
+		"tag":            req.IdempotencyKey,
 	}
 
 	prefix := ""
