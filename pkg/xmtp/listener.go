@@ -152,7 +152,6 @@ func (l *Listener) processEnvelope(env *v1.Envelope) error {
 	}
 
 	if len(subs) == 0 {
-		l.logger.Warn("no subscriptions found for topic", zap.String("topic", env.ContentTopic))
 		return nil
 	}
 
