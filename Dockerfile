@@ -1,5 +1,7 @@
 # BUILD IMAGE --------------------------------------------------------
-FROM golang:1.20-alpine AS base
+FROM golang:1.24-alpine AS builder
+
+# Get build tools and required header files
 RUN apk add --no-cache build-base
 
 FROM base AS builder
@@ -13,7 +15,15 @@ RUN go build \
     -ldflags="-X 'main.GitCommit=$GIT_COMMIT' -X 'main.XMTPGoClientVersion=$XMTP_GO_CLIENT_VERSION'" \
     cmd/server/main.go
 
-FROM alpine:3.12
+# ACTUAL IMAGE -------------------------------------------------------
+
+FROM alpine:3
+
+LABEL maintainer="engineering@xmtp.com"
+LABEL source="https://github.com/xmtp/example-notification-server-go"
+LABEL description="XMTP Example Notification Server"
+
+# color, nocolor, json
 ENV GOLOG_LOG_FMT=nocolor
 RUN addgroup --system --gid 1001 go
 RUN adduser --system --uid 1001 -G go go
