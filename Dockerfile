@@ -4,7 +4,6 @@ FROM golang:1.24-alpine AS builder
 # Get build tools and required header files
 RUN apk add --no-cache build-base
 
-FROM base AS builder
 WORKDIR /app
 COPY . .
 
