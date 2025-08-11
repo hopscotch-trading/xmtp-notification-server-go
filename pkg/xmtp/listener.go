@@ -130,12 +130,13 @@ func (l *Listener) startMessageWorkers() {
 		go func() {
 			var err error
 			for msg := range l.messageChannel {
+				l.logger.Info("processing a message", zap.String("topic", msg.ContentTopic))
 				err = l.processEnvelope(msg)
 				if err != nil {
 					l.logger.Error("error processing envelope", zap.String("topic", msg.ContentTopic), zap.Error(err))
 					continue
 				}
-				// l.logger.Info("processed a message", zap.String("topic", msg.ContentTopic))
+				l.logger.Info("processed a message", zap.String("topic", msg.ContentTopic))
 			}
 		}()
 	}
