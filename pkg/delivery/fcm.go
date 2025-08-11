@@ -66,6 +66,7 @@ func (f FcmDelivery) Send(ctx context.Context, req interfaces.SendRequest) error
 		// "encryptedMessage": message,
 		"installationId": req.Installation.Id,
 		"messageType":    string(req.MessageContext.MessageType),
+		"timestampNs":    fmt.Sprint(req.Message.TimestampNs),
 		"topic":          topic,
 	}
 
