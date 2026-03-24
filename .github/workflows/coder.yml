@@ -5,6 +5,10 @@ on:
     types: [assigned, closed]
   issue_comment:
     types: [created]
+  pull_request_review_comment:
+    types: [created]
+  pull_request_review:
+    types: [submitted]
   workflow_run:
     workflows: ["Lint", "Tests"]
     types: [completed]
@@ -29,8 +33,9 @@ jobs:
           action: create_task
           coder-url: ${{ secrets.CODER_URL }}
           coder-token: ${{ secrets.CODER_TOKEN }}
-          github-token: ${{ github.token }}
-          prompt: " "
+          prompt: |
+            You are an autonomous AI agent. Resolve the GitHub issue below.
+            Read the issue, develop a plan, post it as a comment, then implement and open a PR.
 
   close-task:
     runs-on: ubuntu-latest
@@ -44,7 +49,6 @@ jobs:
           action: close_task
           coder-url: ${{ secrets.CODER_URL }}
           coder-token: ${{ secrets.CODER_TOKEN }}
-          github-token: ${{ github.token }}
 
   pr-comment:
     runs-on: ubuntu-latest
@@ -52,6 +56,7 @@ jobs:
       github.event_name == 'issue_comment'
       && github.event.action == 'created'
       && github.event.issue.pull_request
+      && github.event.issue.user.login == 'xmtp-coder-agent'
       && github.event.comment.user.login != 'xmtp-coder-agent'
     steps:
       - name: Forward PR Comment to Coder Task
@@ -60,7 +65,37 @@ jobs:
           action: pr_comment
           coder-url: ${{ secrets.CODER_URL }}
           coder-token: ${{ secrets.CODER_TOKEN }}
-          github-token: ${{ github.token }}
+
+  pr-review-comment:
+    runs-on: ubuntu-latest
+    if: >-
+      github.event_name == 'pull_request_review_comment'
+      && github.event.action == 'created'
+      && github.event.pull_request.user.login == 'xmtp-coder-agent'
+      && github.event.comment.user.login != 'xmtp-coder-agent'
+    steps:
+      - name: Forward PR Review Comment to Coder Task
+        uses: xmtplabs/coder-action@main
+        with:
+          action: pr_comment
+          coder-url: ${{ secrets.CODER_URL }}
+          coder-token: ${{ secrets.CODER_TOKEN }}
+
+  pr-review:
+    runs-on: ubuntu-latest
+    if: >-
+      github.event_name == 'pull_request_review'
+      && github.event.action == 'submitted'
+      && github.event.pull_request.user.login == 'xmtp-coder-agent'
+      && github.event.review.user.login != 'xmtp-coder-agent'
+      && github.event.review.body != ''
+    steps:
+      - name: Forward PR Review to Coder Task
+        uses: xmtplabs/coder-action@main
+        with:
+          action: pr_comment
+          coder-url: ${{ secrets.CODER_URL }}
+          coder-token: ${{ secrets.CODER_TOKEN }}
 
   issue-comment:
     runs-on: ubuntu-latest
@@ -76,7 +111,6 @@ jobs:
           action: issue_comment
           coder-url: ${{ secrets.CODER_URL }}
           coder-token: ${{ secrets.CODER_TOKEN }}
-          github-token: ${{ github.token }}
 
   failed-check:
     runs-on: ubuntu-latest
@@ -90,4 +124,3 @@ jobs:
           action: failed_check
           coder-url: ${{ secrets.CODER_URL }}
           coder-token: ${{ secrets.CODER_TOKEN }}
-          github-token: ${{ github.token }}
