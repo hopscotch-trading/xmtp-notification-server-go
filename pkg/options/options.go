@@ -29,9 +29,11 @@ type XmtpOptions struct {
 }
 
 type HttpDeliveryOptions struct {
-	Enabled    bool   `long:"http-delivery"`
-	Address    string `long:"http-delivery-address"`
-	AuthHeader string `long:"http-auth-header"`
+	Enabled           bool   `long:"http-delivery"`
+	Address           string `long:"http-delivery-address"`
+	AuthHeader        string `long:"http-auth-header"`
+	MaxRetries        int    `long:"http-max-retries" env:"HTTP_MAX_RETRIES" default:"1" description:"Maximum number of retry attempts for failed HTTP deliveries"`
+	InitialRetryDelay int    `long:"http-initial-retry-delay" env:"HTTP_INITIAL_RETRY_DELAY" default:"250" description:"Initial retry delay in milliseconds (doubles with each retry)"`
 }
 
 type Options struct {
