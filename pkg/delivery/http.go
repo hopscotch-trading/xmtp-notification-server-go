@@ -17,16 +17,21 @@ type HttpDelivery struct {
 	address           string
 	authHeader        string
 	logger            *zap.Logger
-	maxRetries        int
+	maxAttempts       int
 	initialRetryDelay time.Duration
 }
 
 func NewHttpDelivery(logger *zap.Logger, opts options.HttpDeliveryOptions) *HttpDelivery {
+	maxAttempts := opts.MaxAttempts
+	if maxAttempts < 1 {
+		maxAttempts = 1
+	}
+
 	return &HttpDelivery{
 		logger:            logger,
 		address:           opts.Address,
 		authHeader:        opts.AuthHeader,
-		maxRetries:        opts.MaxRetries,
+		maxAttempts:       maxAttempts,
 		initialRetryDelay: time.Duration(opts.InitialRetryDelayMs) * time.Millisecond,
 	}
 }
@@ -43,17 +48,17 @@ func (h HttpDelivery) Send(ctx context.Context, req interfaces.SendRequest) erro
 	}
 
 	var lastErr error
-	for attempt := 0; attempt <= h.maxRetries; attempt++ {
+	for attempt := 0; attempt < h.maxAttempts; attempt++ {
 		lastErr = h.doSend(ctx, jsonData)
 		if lastErr == nil {
 			return nil
 		}
 
-		if attempt < h.maxRetries {
+		if attempt < h.maxAttempts-1 {
 			delay := h.initialRetryDelay * (1 << uint(attempt))
 			h.logger.Warn("HTTP delivery failed, retrying",
 				zap.Int("attempt", attempt+1),
-				zap.Int("max_retries", h.maxRetries),
+				zap.Int("max_attempts", h.maxAttempts),
 				zap.Duration("next_delay", delay),
 				zap.Error(lastErr),
 			)

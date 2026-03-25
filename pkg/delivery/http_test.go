@@ -23,12 +23,12 @@ func newTestRequest() interfaces.SendRequest {
 
 // testServerAndDelivery creates an httptest server with the given handler and
 // an HttpDelivery pointed at it. The caller should defer server.Close().
-func testServerAndDelivery(t *testing.T, handler http.HandlerFunc, maxRetries int, initialDelayMs int) (*httptest.Server, *HttpDelivery) {
+func testServerAndDelivery(t *testing.T, handler http.HandlerFunc, maxAttempts int, initialDelayMs int) (*httptest.Server, *HttpDelivery) {
 	t.Helper()
 	server := httptest.NewServer(handler)
 	d := NewHttpDelivery(zaptest.NewLogger(t), options.HttpDeliveryOptions{
 		Address:             server.URL,
-		MaxRetries:          maxRetries,
+		MaxAttempts:         maxAttempts,
 		InitialRetryDelayMs: initialDelayMs,
 	})
 	return server, d
@@ -70,17 +70,16 @@ func TestHttpDelivery_RetryOnFailureThenSuccess(t *testing.T) {
 	assert.Equal(t, int32(2), atomic.LoadInt32(&requestCount))
 }
 
-func TestHttpDelivery_ExhaustsRetries(t *testing.T) {
+func TestHttpDelivery_ExhaustsAttempts(t *testing.T) {
 	var requestCount int32
-	maxRetries := 2
-	server, d := testServerAndDelivery(t, countingHandler(&requestCount, http.StatusInternalServerError), maxRetries, 10)
+	maxAttempts := 3
+	server, d := testServerAndDelivery(t, countingHandler(&requestCount, http.StatusInternalServerError), maxAttempts, 10)
 	defer server.Close()
 
 	err := d.Send(context.Background(), newTestRequest())
 	require.Error(t, err)
 	assert.Equal(t, "HTTP request failed", err.Error())
-	// Initial attempt + maxRetries retries
-	assert.Equal(t, int32(maxRetries+1), atomic.LoadInt32(&requestCount))
+	assert.Equal(t, int32(maxAttempts), atomic.LoadInt32(&requestCount))
 }
 
 func TestHttpDelivery_ContextCancellation(t *testing.T) {
@@ -109,11 +108,11 @@ func TestHttpDelivery_ContextCancellation(t *testing.T) {
 func TestHttpDelivery_DefaultConfig(t *testing.T) {
 	d := NewHttpDelivery(zaptest.NewLogger(t), options.HttpDeliveryOptions{
 		Address:             "http://localhost:9999",
-		MaxRetries:          1,
+		MaxAttempts:         1,
 		InitialRetryDelayMs: 250,
 	})
 
-	assert.Equal(t, 1, d.maxRetries)
+	assert.Equal(t, 1, d.maxAttempts)
 	assert.Equal(t, 250*time.Millisecond, d.initialRetryDelay)
 }
 
@@ -122,12 +121,12 @@ func TestHttpDelivery_ExponentialBackoff(t *testing.T) {
 	server, d := testServerAndDelivery(t, func(w http.ResponseWriter, r *http.Request) {
 		timestamps = append(timestamps, time.Now())
 		w.WriteHeader(http.StatusInternalServerError)
-	}, 3, 50)
+	}, 4, 50)
 	defer server.Close()
 
 	_ = d.Send(context.Background(), newTestRequest())
 
-	// Should have 4 requests total (1 initial + 3 retries)
+	// Should have 4 requests total (maxAttempts=4)
 	require.Len(t, timestamps, 4)
 
 	// Verify delays roughly double each time
@@ -141,15 +140,26 @@ func TestHttpDelivery_ExponentialBackoff(t *testing.T) {
 	}
 }
 
-func TestHttpDelivery_ZeroRetries(t *testing.T) {
+func TestHttpDelivery_SingleAttempt(t *testing.T) {
 	var requestCount int32
-	server, d := testServerAndDelivery(t, countingHandler(&requestCount, http.StatusInternalServerError), 0, 10)
+	server, d := testServerAndDelivery(t, countingHandler(&requestCount, http.StatusInternalServerError), 1, 10)
 	defer server.Close()
 
 	err := d.Send(context.Background(), newTestRequest())
 	require.Error(t, err)
-	// With maxRetries=0, only one attempt is made
+	// With maxAttempts=1, only one attempt is made (no retries)
 	assert.Equal(t, int32(1), atomic.LoadInt32(&requestCount))
+}
+
+func TestHttpDelivery_MaxAttemptsClampsToMinimumOne(t *testing.T) {
+	d := NewHttpDelivery(zaptest.NewLogger(t), options.HttpDeliveryOptions{
+		Address:             "http://localhost:9999",
+		MaxAttempts:         0,
+		InitialRetryDelayMs: 10,
+	})
+
+	// Value of 0 should be clamped to 1
+	assert.Equal(t, 1, d.maxAttempts)
 }
 
 func TestHttpDelivery_CanDeliver(t *testing.T) {
@@ -168,7 +178,7 @@ func TestHttpDelivery_AuthHeader(t *testing.T) {
 	d := NewHttpDelivery(zaptest.NewLogger(t), options.HttpDeliveryOptions{
 		Address:             server.URL,
 		AuthHeader:          "Bearer test-token",
-		MaxRetries:          0,
+		MaxAttempts:         1,
 		InitialRetryDelayMs: 10,
 	})
 

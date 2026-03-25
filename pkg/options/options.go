@@ -32,7 +32,7 @@ type HttpDeliveryOptions struct {
 	Enabled           bool   `long:"http-delivery"`
 	Address           string `long:"http-delivery-address"`
 	AuthHeader        string `long:"http-auth-header"`
-	MaxRetries        int    `long:"http-max-retries" env:"HTTP_MAX_RETRIES" default:"1" description:"Maximum number of retry attempts for failed HTTP deliveries"`
+	MaxAttempts       int    `long:"http-max-attempts" env:"HTTP_MAX_ATTEMPTS" default:"1" description:"Maximum number of delivery attempts (minimum 1, includes initial attempt)"`
 	InitialRetryDelayMs int    `long:"http-initial-retry-delay-ms" env:"HTTP_INITIAL_RETRY_DELAY_MS" default:"250" description:"Initial retry delay in milliseconds (doubles with each retry)"`
 }
 
