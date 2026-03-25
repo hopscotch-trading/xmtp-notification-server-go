@@ -27,7 +27,7 @@ func NewHttpDelivery(logger *zap.Logger, opts options.HttpDeliveryOptions) *Http
 		address:           opts.Address,
 		authHeader:        opts.AuthHeader,
 		maxRetries:        opts.MaxRetries,
-		initialRetryDelay: time.Duration(opts.InitialRetryDelay) * time.Millisecond,
+		initialRetryDelay: time.Duration(opts.InitialRetryDelayMs) * time.Millisecond,
 	}
 }
 

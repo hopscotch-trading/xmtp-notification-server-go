@@ -32,7 +32,7 @@ func TestHttpDelivery_SendSuccess(t *testing.T) {
 	d := NewHttpDelivery(zaptest.NewLogger(t), options.HttpDeliveryOptions{
 		Address:           server.URL,
 		MaxRetries:        3,
-		InitialRetryDelay: 10,
+		InitialRetryDelayMs: 10,
 	})
 
 	err := d.Send(context.Background(), newTestRequest())
@@ -55,7 +55,7 @@ func TestHttpDelivery_RetryOnFailureThenSuccess(t *testing.T) {
 	d := NewHttpDelivery(zaptest.NewLogger(t), options.HttpDeliveryOptions{
 		Address:           server.URL,
 		MaxRetries:        3,
-		InitialRetryDelay: 10,
+		InitialRetryDelayMs: 10,
 	})
 
 	err := d.Send(context.Background(), newTestRequest())
@@ -75,7 +75,7 @@ func TestHttpDelivery_ExhaustsRetries(t *testing.T) {
 	d := NewHttpDelivery(zaptest.NewLogger(t), options.HttpDeliveryOptions{
 		Address:           server.URL,
 		MaxRetries:        maxRetries,
-		InitialRetryDelay: 10,
+		InitialRetryDelayMs: 10,
 	})
 
 	err := d.Send(context.Background(), newTestRequest())
@@ -98,7 +98,7 @@ func TestHttpDelivery_ContextCancellation(t *testing.T) {
 	d := NewHttpDelivery(zaptest.NewLogger(t), options.HttpDeliveryOptions{
 		Address:           server.URL,
 		MaxRetries:        5,
-		InitialRetryDelay: 500, // long enough to cancel during
+		InitialRetryDelayMs: 500, // long enough to cancel during
 	})
 
 	done := make(chan error, 1)
@@ -121,7 +121,7 @@ func TestHttpDelivery_DefaultConfig(t *testing.T) {
 	d := NewHttpDelivery(zaptest.NewLogger(t), options.HttpDeliveryOptions{
 		Address:           "http://localhost:9999",
 		MaxRetries:        1,
-		InitialRetryDelay: 250,
+		InitialRetryDelayMs: 250,
 	})
 
 	assert.Equal(t, 1, d.maxRetries)
@@ -139,7 +139,7 @@ func TestHttpDelivery_ExponentialBackoff(t *testing.T) {
 	d := NewHttpDelivery(zaptest.NewLogger(t), options.HttpDeliveryOptions{
 		Address:           server.URL,
 		MaxRetries:        3,
-		InitialRetryDelay: 50,
+		InitialRetryDelayMs: 50,
 	})
 
 	_ = d.Send(context.Background(), newTestRequest())
@@ -169,7 +169,7 @@ func TestHttpDelivery_ZeroRetries(t *testing.T) {
 	d := NewHttpDelivery(zaptest.NewLogger(t), options.HttpDeliveryOptions{
 		Address:           server.URL,
 		MaxRetries:        0,
-		InitialRetryDelay: 10,
+		InitialRetryDelayMs: 10,
 	})
 
 	err := d.Send(context.Background(), newTestRequest())
@@ -195,7 +195,7 @@ func TestHttpDelivery_AuthHeader(t *testing.T) {
 		Address:           server.URL,
 		AuthHeader:        "Bearer test-token",
 		MaxRetries:        0,
-		InitialRetryDelay: 10,
+		InitialRetryDelayMs: 10,
 	})
 
 	err := d.Send(context.Background(), newTestRequest())
