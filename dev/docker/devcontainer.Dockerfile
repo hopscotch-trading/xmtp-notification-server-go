@@ -10,3 +10,7 @@ RUN go install github.com/bufbuild/buf/cmd/buf@latest
 RUN apt-get update && apt-get install -y \
     shellcheck \
     jq
+
+# Ensure GOPATH is writable by the vscode user (UID 1000) so that
+# postCreateCommand ("go mod tidy") can populate the module cache.
+RUN chown -R 1000:1000 /go
