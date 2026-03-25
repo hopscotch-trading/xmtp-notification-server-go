@@ -21,19 +21,32 @@ func newTestRequest() interfaces.SendRequest {
 	}
 }
 
+// testServerAndDelivery creates an httptest server with the given handler and
+// an HttpDelivery pointed at it. The caller should defer server.Close().
+func testServerAndDelivery(t *testing.T, handler http.HandlerFunc, maxRetries int, initialDelayMs int) (*httptest.Server, *HttpDelivery) {
+	t.Helper()
+	server := httptest.NewServer(handler)
+	d := NewHttpDelivery(zaptest.NewLogger(t), options.HttpDeliveryOptions{
+		Address:             server.URL,
+		MaxRetries:          maxRetries,
+		InitialRetryDelayMs: initialDelayMs,
+	})
+	return server, d
+}
+
+// countingHandler returns an http.HandlerFunc that counts requests and responds
+// with the given status code.
+func countingHandler(counter *int32, statusCode int) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		atomic.AddInt32(counter, 1)
+		w.WriteHeader(statusCode)
+	}
+}
+
 func TestHttpDelivery_SendSuccess(t *testing.T) {
 	var requestCount int32
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		atomic.AddInt32(&requestCount, 1)
-		w.WriteHeader(http.StatusOK)
-	}))
+	server, d := testServerAndDelivery(t, countingHandler(&requestCount, http.StatusOK), 3, 10)
 	defer server.Close()
-
-	d := NewHttpDelivery(zaptest.NewLogger(t), options.HttpDeliveryOptions{
-		Address:           server.URL,
-		MaxRetries:        3,
-		InitialRetryDelayMs: 10,
-	})
 
 	err := d.Send(context.Background(), newTestRequest())
 	require.NoError(t, err)
@@ -42,21 +55,15 @@ func TestHttpDelivery_SendSuccess(t *testing.T) {
 
 func TestHttpDelivery_RetryOnFailureThenSuccess(t *testing.T) {
 	var requestCount int32
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server, d := testServerAndDelivery(t, func(w http.ResponseWriter, r *http.Request) {
 		count := atomic.AddInt32(&requestCount, 1)
 		if count == 1 {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 		w.WriteHeader(http.StatusOK)
-	}))
+	}, 3, 10)
 	defer server.Close()
-
-	d := NewHttpDelivery(zaptest.NewLogger(t), options.HttpDeliveryOptions{
-		Address:           server.URL,
-		MaxRetries:        3,
-		InitialRetryDelayMs: 10,
-	})
 
 	err := d.Send(context.Background(), newTestRequest())
 	require.NoError(t, err)
@@ -65,18 +72,9 @@ func TestHttpDelivery_RetryOnFailureThenSuccess(t *testing.T) {
 
 func TestHttpDelivery_ExhaustsRetries(t *testing.T) {
 	var requestCount int32
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		atomic.AddInt32(&requestCount, 1)
-		w.WriteHeader(http.StatusInternalServerError)
-	}))
-	defer server.Close()
-
 	maxRetries := 2
-	d := NewHttpDelivery(zaptest.NewLogger(t), options.HttpDeliveryOptions{
-		Address:           server.URL,
-		MaxRetries:        maxRetries,
-		InitialRetryDelayMs: 10,
-	})
+	server, d := testServerAndDelivery(t, countingHandler(&requestCount, http.StatusInternalServerError), maxRetries, 10)
+	defer server.Close()
 
 	err := d.Send(context.Background(), newTestRequest())
 	require.Error(t, err)
@@ -87,19 +85,10 @@ func TestHttpDelivery_ExhaustsRetries(t *testing.T) {
 
 func TestHttpDelivery_ContextCancellation(t *testing.T) {
 	var requestCount int32
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		atomic.AddInt32(&requestCount, 1)
-		w.WriteHeader(http.StatusInternalServerError)
-	}))
+	server, d := testServerAndDelivery(t, countingHandler(&requestCount, http.StatusInternalServerError), 5, 500)
 	defer server.Close()
 
 	ctx, cancel := context.WithCancel(context.Background())
-
-	d := NewHttpDelivery(zaptest.NewLogger(t), options.HttpDeliveryOptions{
-		Address:           server.URL,
-		MaxRetries:        5,
-		InitialRetryDelayMs: 500, // long enough to cancel during
-	})
 
 	done := make(chan error, 1)
 	go func() {
@@ -119,8 +108,8 @@ func TestHttpDelivery_ContextCancellation(t *testing.T) {
 
 func TestHttpDelivery_DefaultConfig(t *testing.T) {
 	d := NewHttpDelivery(zaptest.NewLogger(t), options.HttpDeliveryOptions{
-		Address:           "http://localhost:9999",
-		MaxRetries:        1,
+		Address:             "http://localhost:9999",
+		MaxRetries:          1,
 		InitialRetryDelayMs: 250,
 	})
 
@@ -130,17 +119,11 @@ func TestHttpDelivery_DefaultConfig(t *testing.T) {
 
 func TestHttpDelivery_ExponentialBackoff(t *testing.T) {
 	var timestamps []time.Time
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server, d := testServerAndDelivery(t, func(w http.ResponseWriter, r *http.Request) {
 		timestamps = append(timestamps, time.Now())
 		w.WriteHeader(http.StatusInternalServerError)
-	}))
+	}, 3, 50)
 	defer server.Close()
-
-	d := NewHttpDelivery(zaptest.NewLogger(t), options.HttpDeliveryOptions{
-		Address:           server.URL,
-		MaxRetries:        3,
-		InitialRetryDelayMs: 50,
-	})
 
 	_ = d.Send(context.Background(), newTestRequest())
 
@@ -160,17 +143,8 @@ func TestHttpDelivery_ExponentialBackoff(t *testing.T) {
 
 func TestHttpDelivery_ZeroRetries(t *testing.T) {
 	var requestCount int32
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		atomic.AddInt32(&requestCount, 1)
-		w.WriteHeader(http.StatusInternalServerError)
-	}))
+	server, d := testServerAndDelivery(t, countingHandler(&requestCount, http.StatusInternalServerError), 0, 10)
 	defer server.Close()
-
-	d := NewHttpDelivery(zaptest.NewLogger(t), options.HttpDeliveryOptions{
-		Address:           server.URL,
-		MaxRetries:        0,
-		InitialRetryDelayMs: 10,
-	})
 
 	err := d.Send(context.Background(), newTestRequest())
 	require.Error(t, err)
@@ -192,9 +166,9 @@ func TestHttpDelivery_AuthHeader(t *testing.T) {
 	defer server.Close()
 
 	d := NewHttpDelivery(zaptest.NewLogger(t), options.HttpDeliveryOptions{
-		Address:           server.URL,
-		AuthHeader:        "Bearer test-token",
-		MaxRetries:        0,
+		Address:             server.URL,
+		AuthHeader:          "Bearer test-token",
+		MaxRetries:          0,
 		InitialRetryDelayMs: 10,
 	})
 
