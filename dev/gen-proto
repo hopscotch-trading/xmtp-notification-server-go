@@ -13,6 +13,8 @@ if [ -n "$(go env GOPATH)" ]; then
     export PATH="${FOUND_GOPATH}/bin:${PATH}"
 fi
 
+PROTO_PATH="${1:-buf.build/xmtp/proto}"
+
 rm -rf ./pkg/proto
 buf generate --template proto/buf.gen.yaml
-buf generate buf.build/xmtp/proto
+buf generate "$PROTO_PATH"
