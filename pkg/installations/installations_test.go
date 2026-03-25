@@ -34,8 +34,7 @@ func buildInstallation(installationId string, kind interfaces.DeliveryMechanismK
 
 func Test_Register(t *testing.T) {
 	ctx := context.Background()
-	db, cleanup := test.CreateTestDb()
-	defer cleanup()
+	db := test.CreateTestDb(t)
 
 	svc := createService(db)
 	res, err := svc.Register(ctx, buildInstallation(INSTALLATION_ID, interfaces.APNS, TOKEN))
@@ -56,8 +55,7 @@ func Test_Register(t *testing.T) {
 func Test_RegisterDuplicate(t *testing.T) {
 	var err error
 	ctx := context.Background()
-	db, cleanup := test.CreateTestDb()
-	defer cleanup()
+	db := test.CreateTestDb(t)
 
 	svc := createService(db)
 
@@ -96,8 +94,7 @@ func Test_RegisterDuplicate(t *testing.T) {
 
 func Test_RegisterUpdate(t *testing.T) {
 	ctx := context.Background()
-	db, cleanup := test.CreateTestDb()
-	defer cleanup()
+	db := test.CreateTestDb(t)
 
 	var err error
 	svc := createService(db)
@@ -140,8 +137,7 @@ func Test_RegisterUpdate(t *testing.T) {
 
 func Test_Delete(t *testing.T) {
 	ctx := context.Background()
-	db, cleanup := test.CreateTestDb()
-	defer cleanup()
+	db := test.CreateTestDb(t)
 	svc := createService(db)
 
 	createReq := buildInstallation(INSTALLATION_ID, interfaces.APNS, TOKEN)
@@ -164,8 +160,7 @@ func Test_Delete(t *testing.T) {
 
 func Test_DeleteAndRegisterAgain(t *testing.T) {
 	ctx := context.Background()
-	db, cleanup := test.CreateTestDb()
-	defer cleanup()
+	db := test.CreateTestDb(t)
 	svc := createService(db)
 
 	createReq := buildInstallation(INSTALLATION_ID, interfaces.APNS, TOKEN)
@@ -191,8 +186,7 @@ func Test_DeleteAndRegisterAgain(t *testing.T) {
 
 func Test_Get(t *testing.T) {
 	ctx := context.Background()
-	db, _ := test.CreateTestDb()
-	// defer cleanup()
+	db := test.CreateTestDb(t)
 	svc := createService(db)
 
 	installationIds := []string{"install1", "install2", "install3"}
@@ -214,8 +208,7 @@ func Test_Get(t *testing.T) {
 
 func Test_GetMultiple(t *testing.T) {
 	ctx := context.Background()
-	db, cleanup := test.CreateTestDb()
-	defer cleanup()
+	db := test.CreateTestDb(t)
 	svc := createService(db)
 
 	tokens := []string{"token1", "token2", "token3"}
@@ -232,8 +225,7 @@ func Test_GetMultiple(t *testing.T) {
 
 func Test_GetDeleted(t *testing.T) {
 	ctx := context.Background()
-	db, cleanup := test.CreateTestDb()
-	defer cleanup()
+	db := test.CreateTestDb(t)
 	svc := createService(db)
 
 	_, err := svc.Register(ctx, buildInstallation(INSTALLATION_ID, interfaces.APNS, TOKEN))

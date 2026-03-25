@@ -2,6 +2,7 @@ package test
 
 import (
 	"context"
+	"testing"
 	"time"
 
 	"github.com/uptrace/bun"
@@ -17,15 +18,20 @@ func createDb() *bun.DB {
 	return db
 }
 
-func CreateTestDb() (*bun.DB, func()) {
-	ctx := context.Background()
+func CreateTestDb(t *testing.T) *bun.DB {
+	ctx := t.Context()
 	db := createDb()
-	_ = database.Migrate(ctx, db)
-
-	return db, func() {
-		_, _ = db.NewTruncateTable().Model((*database.Installation)(nil)).Cascade().Exec(ctx)
-		_, _ = db.NewTruncateTable().Model((*database.DeviceDeliveryMechanism)(nil)).Cascade().Exec(ctx)
-		_, _ = db.NewTruncateTable().Model((*database.Subscription)(nil)).Cascade().Exec(ctx)
-		_, _ = db.NewTruncateTable().Model((*database.SubscriptionHmacKeys)(nil)).Cascade().Exec(ctx)
+	if err := database.Migrate(ctx, db); err != nil {
+		t.Fatal(err)
 	}
+
+	t.Cleanup(func() {
+		cleanupCtx := context.Background()
+		_, _ = db.NewTruncateTable().Model((*database.Installation)(nil)).Cascade().Exec(cleanupCtx)
+		_, _ = db.NewTruncateTable().Model((*database.DeviceDeliveryMechanism)(nil)).Cascade().Exec(cleanupCtx)
+		_, _ = db.NewTruncateTable().Model((*database.Subscription)(nil)).Cascade().Exec(cleanupCtx)
+		_, _ = db.NewTruncateTable().Model((*database.SubscriptionHmacKeys)(nil)).Cascade().Exec(cleanupCtx)
+	})
+
+	return db
 }

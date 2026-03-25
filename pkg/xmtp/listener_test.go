@@ -30,7 +30,7 @@ func buildTestListener(t *testing.T, deliveryService interfaces.Delivery) (*List
 	logger := logging.CreateLogger("console", "info")
 	ctx, cancel := context.WithCancel(context.Background())
 	opts := options.XmtpOptions{ListenerEnabled: true, GrpcAddress: XMTP_ADDRESS, UseTls: false, NumWorkers: 5}
-	db, cleanup := test.CreateTestDb()
+	db := test.CreateTestDb(t)
 	installations := installations.NewInstallationsService(logger, db)
 	subscriptions := subscriptions.NewSubscriptionsService(logger, db)
 
@@ -43,7 +43,6 @@ func buildTestListener(t *testing.T, deliveryService interfaces.Delivery) (*List
 	return l, func() {
 		cancel()
 		l.Stop()
-		cleanup()
 	}
 }
 
