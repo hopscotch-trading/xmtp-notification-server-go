@@ -3,6 +3,8 @@ package api
 import (
 	"context"
 	"errors"
+	"fmt"
+	"net"
 	"net/http"
 	"testing"
 	"time"
@@ -20,17 +22,11 @@ import (
 
 const INSTALLATION_ID = "install1"
 
-func buildClient() protoconnect.NotificationsClient {
-	return protoconnect.NewNotificationsClient(
-		http.DefaultClient,
-		"http://localhost:8080",
-	)
-}
-
 type testContext struct {
 	cleanup           func()
 	client            protoconnect.NotificationsClient
 	ctx               context.Context
+	httpClient        *http.Client
 	installationsMock *mocks.Installations
 	subscriptionsMock *mocks.Subscriptions
 	apiServer         *ApiServer
@@ -38,24 +34,42 @@ type testContext struct {
 
 func setupTest(t *testing.T) testContext {
 	ctx := context.Background()
+	port := getFreePort(t)
 	installationsMock := mocks.NewInstallations(t)
 	subscriptionsMock := mocks.NewSubscriptions(t)
-	apiServer := NewApiServer(logging.CreateLogger("console", "info"), options.ApiOptions{Port: 8080}, installationsMock, subscriptionsMock)
+	httpClient := &http.Client{
+		Transport: &http.Transport{
+			DisableKeepAlives: true,
+		},
+	}
+	apiServer := NewApiServer(logging.CreateLogger("console", "info"), options.ApiOptions{Port: port}, installationsMock, subscriptionsMock)
 	apiServer.Start()
 	time.Sleep(50 * time.Millisecond)
 
 	cleanup := func() {
+		httpClient.CloseIdleConnections()
 		apiServer.Stop()
 	}
 
 	return testContext{
 		cleanup:           cleanup,
-		client:            buildClient(),
+		client:            protoconnect.NewNotificationsClient(httpClient, fmt.Sprintf("http://127.0.0.1:%d", port)),
 		ctx:               ctx,
+		httpClient:        httpClient,
 		installationsMock: installationsMock,
 		subscriptionsMock: subscriptionsMock,
 		apiServer:         apiServer,
 	}
+}
+
+func getFreePort(t *testing.T) int {
+	t.Helper()
+
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(t, err)
+	defer listener.Close()
+
+	return listener.Addr().(*net.TCPAddr).Port
 }
 
 func Test_RegisterInstallation(t *testing.T) {

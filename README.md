@@ -114,6 +114,22 @@ To just rebuild the notification protos run:
 buf generate
 ```
 
+If you change the SQL in `pkg/db/sqlc`, regenerate the typed query package with:
+
+```sh
+./dev/gen-sqlc
+```
+
+### Creating migrations
+
+To add a new database migration, run:
+
+```sh
+./dev/create-migration <name>
+```
+
+This creates paired `.up.sql` and `.down.sql` files in `pkg/db/migrations`.
+
 ### Testing the API
 
 The API supports plain JSON and can be used via CURL

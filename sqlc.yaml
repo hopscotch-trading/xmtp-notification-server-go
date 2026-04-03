@@ -1,0 +1,11 @@
+version: "2"
+sql:
+  - engine: "postgresql"
+    queries:
+      - "pkg/db/sqlc/installations.sql"
+      - "pkg/db/sqlc/subscriptions.sql"
+    schema: "pkg/db/schema.sql"
+    gen:
+      go:
+        package: "queries"
+        out: "pkg/db/queries"

@@ -2,11 +2,11 @@ package installations
 
 import (
 	"context"
+	"database/sql"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
-	"github.com/uptrace/bun"
-	database "github.com/xmtp/example-notification-server-go/pkg/db"
 	"github.com/xmtp/example-notification-server-go/pkg/interfaces"
 	"github.com/xmtp/example-notification-server-go/pkg/logging"
 	"github.com/xmtp/example-notification-server-go/test"
@@ -15,21 +15,74 @@ import (
 const INSTALLATION_ID = "foo"
 const TOKEN = "bar"
 
-func createService(db *bun.DB) interfaces.Installations {
+type storedInstallation struct {
+	ID                 string
+	CreatedAt          time.Time
+	DeletedAt          sql.NullTime
+	DeliveryMechanisms []storedDeliveryMechanism
+}
+
+type storedDeliveryMechanism struct {
+	ID        int64
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	Kind      string
+	Token     string
+}
+
+func createService(db *sql.DB) interfaces.Installations {
 	return NewInstallationsService(
 		logging.CreateLogger("console", "info"),
 		db,
 	)
 }
 
-func buildInstallation(installationId string, kind interfaces.DeliveryMechanismKind, token string) interfaces.Installation {
+func buildInstallation(installationID string, kind interfaces.DeliveryMechanismKind, token string) interfaces.Installation {
 	return interfaces.Installation{
-		Id: installationId,
+		Id: installationID,
 		DeliveryMechanism: interfaces.DeliveryMechanism{
 			Kind:  kind,
 			Token: token,
 		},
 	}
+}
+
+func fetchInstallation(t *testing.T, ctx context.Context, db *sql.DB, installationID string) storedInstallation {
+	t.Helper()
+
+	var result storedInstallation
+	err := db.QueryRowContext(
+		ctx,
+		`SELECT id, created_at, deleted_at FROM installations WHERE id = $1`,
+		installationID,
+	).Scan(&result.ID, &result.CreatedAt, &result.DeletedAt)
+	require.NoError(t, err)
+
+	rows, err := db.QueryContext(
+		ctx,
+		`SELECT id, created_at, updated_at, kind, token
+		 FROM device_delivery_mechanisms
+		 WHERE installation_id = $1
+		 ORDER BY id ASC`,
+		installationID,
+	)
+	require.NoError(t, err)
+	defer rows.Close()
+
+	for rows.Next() {
+		var mechanism storedDeliveryMechanism
+		require.NoError(t, rows.Scan(
+			&mechanism.ID,
+			&mechanism.CreatedAt,
+			&mechanism.UpdatedAt,
+			&mechanism.Kind,
+			&mechanism.Token,
+		))
+		result.DeliveryMechanisms = append(result.DeliveryMechanisms, mechanism)
+	}
+	require.NoError(t, rows.Err())
+
+	return result
 }
 
 func Test_Register(t *testing.T) {
@@ -42,97 +95,54 @@ func Test_Register(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, INSTALLATION_ID, res.InstallationId)
 
-	installation := new(database.Installation)
-	err = db.NewSelect().Model(installation).Relation("DeliveryMechanisms").Where("id = ?", INSTALLATION_ID).Scan(ctx)
-
-	require.NoError(t, err)
-	require.Equal(t, installation.Id, INSTALLATION_ID)
+	installation := fetchInstallation(t, ctx, db, INSTALLATION_ID)
+	require.Equal(t, INSTALLATION_ID, installation.ID)
 	require.Len(t, installation.DeliveryMechanisms, 1)
-	require.Equal(t, installation.DeliveryMechanisms[0].Kind, interfaces.APNS)
-	require.Equal(t, installation.DeliveryMechanisms[0].Token, TOKEN)
+	require.Equal(t, string(interfaces.APNS), installation.DeliveryMechanisms[0].Kind)
+	require.Equal(t, TOKEN, installation.DeliveryMechanisms[0].Token)
 }
 
 func Test_RegisterDuplicate(t *testing.T) {
-	var err error
 	ctx := context.Background()
 	db := test.CreateTestDb(t)
-
 	svc := createService(db)
 
 	req := buildInstallation(INSTALLATION_ID, interfaces.APNS, TOKEN)
-	_, err = svc.Register(ctx, req)
-
+	_, err := svc.Register(ctx, req)
 	require.NoError(t, err)
 
-	firstInstallation := new(database.Installation)
-	err = db.NewSelect().
-		Model(firstInstallation).
-		Relation("DeliveryMechanisms").
-		Where("id = ?", INSTALLATION_ID).
-		Scan(ctx)
-
-	require.NoError(t, err)
+	first := fetchInstallation(t, ctx, db, INSTALLATION_ID)
 
 	_, err = svc.Register(ctx, req)
-
 	require.NoError(t, err)
 
-	secondInstallation := new(database.Installation)
-	err = db.NewSelect().
-		Model(secondInstallation).
-		Relation("DeliveryMechanisms").
-		Where("id = ?", INSTALLATION_ID).
-		Scan(ctx)
-
-	require.NoError(t, err)
-	require.True(t, firstInstallation.CreatedAt.Equal(secondInstallation.CreatedAt))
-	require.Len(t, secondInstallation.DeliveryMechanisms, 1)
-	require.Equal(t, firstInstallation.DeliveryMechanisms[0].CreatedAt, secondInstallation.DeliveryMechanisms[0].CreatedAt)
-	require.NotEqual(t, firstInstallation.DeliveryMechanisms[0].UpdatedAt, secondInstallation.DeliveryMechanisms[0].UpdatedAt)
-
+	second := fetchInstallation(t, ctx, db, INSTALLATION_ID)
+	require.True(t, first.CreatedAt.Equal(second.CreatedAt))
+	require.Len(t, second.DeliveryMechanisms, 1)
+	require.Equal(t, first.DeliveryMechanisms[0].CreatedAt, second.DeliveryMechanisms[0].CreatedAt)
+	require.NotEqual(t, first.DeliveryMechanisms[0].UpdatedAt, second.DeliveryMechanisms[0].UpdatedAt)
 }
 
 func Test_RegisterUpdate(t *testing.T) {
 	ctx := context.Background()
 	db := test.CreateTestDb(t)
-
-	var err error
 	svc := createService(db)
 
-	token1 := "token1"
-	token2 := "token2"
-
-	req1 := buildInstallation(INSTALLATION_ID, interfaces.APNS, token1)
-
-	_, err = svc.Register(ctx, req1)
+	req1 := buildInstallation(INSTALLATION_ID, interfaces.APNS, "token1")
+	_, err := svc.Register(ctx, req1)
 	require.NoError(t, err)
 
-	firstInstallation := new(database.Installation)
-	err = db.NewSelect().
-		Model(firstInstallation).
-		Relation("DeliveryMechanisms").
-		Where("id = ?", INSTALLATION_ID).
-		Scan(ctx)
+	first := fetchInstallation(t, ctx, db, INSTALLATION_ID)
 
-	require.NoError(t, err)
-
-	req2 := buildInstallation(INSTALLATION_ID, interfaces.APNS, token2)
+	req2 := buildInstallation(INSTALLATION_ID, interfaces.APNS, "token2")
 	_, err = svc.Register(ctx, req2)
-
 	require.NoError(t, err)
 
-	secondInstallation := new(database.Installation)
-	err = db.NewSelect().
-		Model(secondInstallation).
-		Relation("DeliveryMechanisms").
-		Where("id = ?", INSTALLATION_ID).
-		Scan(ctx)
-
-	require.NoError(t, err)
-	require.Len(t, secondInstallation.DeliveryMechanisms, 2)
-	require.Equal(t, secondInstallation.DeliveryMechanisms[1].Token, token2)
-	require.True(t, firstInstallation.CreatedAt.Equal(secondInstallation.CreatedAt))
-	require.NotEqual(t, firstInstallation.DeliveryMechanisms[0].CreatedAt, secondInstallation.DeliveryMechanisms[1].CreatedAt)
+	second := fetchInstallation(t, ctx, db, INSTALLATION_ID)
+	require.Len(t, second.DeliveryMechanisms, 2)
+	require.Equal(t, "token2", second.DeliveryMechanisms[1].Token)
+	require.True(t, first.CreatedAt.Equal(second.CreatedAt))
+	require.NotEqual(t, first.DeliveryMechanisms[0].CreatedAt, second.DeliveryMechanisms[1].CreatedAt)
 }
 
 func Test_Delete(t *testing.T) {
@@ -140,22 +150,14 @@ func Test_Delete(t *testing.T) {
 	db := test.CreateTestDb(t)
 	svc := createService(db)
 
-	createReq := buildInstallation(INSTALLATION_ID, interfaces.APNS, TOKEN)
-	_, err := svc.Register(ctx, createReq)
-
+	_, err := svc.Register(ctx, buildInstallation(INSTALLATION_ID, interfaces.APNS, TOKEN))
 	require.NoError(t, err)
 
 	err = svc.Delete(ctx, INSTALLATION_ID)
 	require.NoError(t, err)
 
-	install := new(database.Installation)
-	err = db.NewSelect().
-		Model(install).
-		Where("id = ?", INSTALLATION_ID).
-		Scan(ctx)
-
-	require.NoError(t, err)
-	require.NotNil(t, install.DeletedAt)
+	installation := fetchInstallation(t, ctx, db, INSTALLATION_ID)
+	require.True(t, installation.DeletedAt.Valid)
 }
 
 func Test_DeleteAndRegisterAgain(t *testing.T) {
@@ -163,25 +165,17 @@ func Test_DeleteAndRegisterAgain(t *testing.T) {
 	db := test.CreateTestDb(t)
 	svc := createService(db)
 
-	createReq := buildInstallation(INSTALLATION_ID, interfaces.APNS, TOKEN)
-	_, err := svc.Register(ctx, createReq)
-
+	_, err := svc.Register(ctx, buildInstallation(INSTALLATION_ID, interfaces.APNS, TOKEN))
 	require.NoError(t, err)
 
 	err = svc.Delete(ctx, INSTALLATION_ID)
 	require.NoError(t, err)
 
-	_, err = svc.Register(ctx, createReq)
+	_, err = svc.Register(ctx, buildInstallation(INSTALLATION_ID, interfaces.APNS, TOKEN))
 	require.NoError(t, err)
 
-	install := new(database.Installation)
-	err = db.NewSelect().
-		Model(install).
-		Where("id = ?", INSTALLATION_ID).
-		Scan(ctx)
-
-	require.NoError(t, err)
-	require.Nil(t, install.DeletedAt)
+	installation := fetchInstallation(t, ctx, db, INSTALLATION_ID)
+	require.False(t, installation.DeletedAt.Valid)
 }
 
 func Test_Get(t *testing.T) {
@@ -189,20 +183,19 @@ func Test_Get(t *testing.T) {
 	db := test.CreateTestDb(t)
 	svc := createService(db)
 
-	installationIds := []string{"install1", "install2", "install3"}
-	for _, installationId := range installationIds {
-		_, err := svc.Register(ctx, buildInstallation(installationId, interfaces.APNS, TOKEN))
+	installationIDs := []string{"install1", "install2", "install3"}
+	for _, installationID := range installationIDs {
+		_, err := svc.Register(ctx, buildInstallation(installationID, interfaces.APNS, TOKEN))
 		require.NoError(t, err)
 	}
 
-	installs, err := svc.GetInstallations(ctx, installationIds)
-
+	installs, err := svc.GetInstallations(ctx, installationIDs)
 	require.NoError(t, err)
-	require.Len(t, installs, len(installationIds))
+	require.Len(t, installs, len(installationIDs))
 
 	for i, install := range installs {
-		require.Equal(t, install.Id, installationIds[len(installationIds)-i-1])
-		require.Equal(t, install.DeliveryMechanism.Token, TOKEN)
+		require.Equal(t, installationIDs[len(installationIDs)-i-1], install.Id)
+		require.Equal(t, TOKEN, install.DeliveryMechanism.Token)
 	}
 }
 
@@ -211,8 +204,7 @@ func Test_GetMultiple(t *testing.T) {
 	db := test.CreateTestDb(t)
 	svc := createService(db)
 
-	tokens := []string{"token1", "token2", "token3"}
-	for _, token := range tokens {
+	for _, token := range []string{"token1", "token2", "token3"} {
 		_, err := svc.Register(ctx, buildInstallation(INSTALLATION_ID, interfaces.APNS, token))
 		require.NoError(t, err)
 	}
@@ -220,7 +212,7 @@ func Test_GetMultiple(t *testing.T) {
 	res, err := svc.GetInstallations(ctx, []string{INSTALLATION_ID})
 	require.NoError(t, err)
 	require.Len(t, res, 1)
-	require.Equal(t, res[0].DeliveryMechanism.Token, "token3")
+	require.Equal(t, "token3", res[0].DeliveryMechanism.Token)
 }
 
 func Test_GetDeleted(t *testing.T) {
