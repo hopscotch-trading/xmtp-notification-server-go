@@ -56,7 +56,7 @@ Both are started as goroutines from `cmd/server/main.go` and shut down gracefull
 - `pkg/installations/` — Installation CRUD (device registration)
 - `pkg/subscriptions/` — Subscription management (topic subscriptions with optional HMAC keys)
 - `pkg/interfaces/` — Core interfaces (`Installations`, `Subscriptions`, `Delivery`) and domain types
-- `pkg/db/` — Bun ORM models and migrations (PostgreSQL)
+- `pkg/db/` — SQLC queries, pgx/database/sql access, and golang-migrate migrations (see `pkg/db/AGENTS.md`)
 - `pkg/topics/` — Topic parsing and message type detection (V3 MLS topics only)
 - `pkg/options/` — CLI flag/env var configuration structs
 - `pkg/proto/` — Generated protobuf/Connect code (~28K LOC, do not edit)
@@ -75,11 +75,11 @@ Options are parsed from CLI flags and environment variables (via `go-flags` stru
 
 ### Database
 
-PostgreSQL via Bun ORM. Migrations in `pkg/db/migrations/`. Test DSN: `postgres://postgres:xmtp@localhost:25432/postgres?sslmode=disable`.
+PostgreSQL via `database/sql` + `pgx`, with `sqlc` query generation. Migrations live in `pkg/db/migrations/`. For DB-specific agent workflow, see `pkg/db/AGENTS.md`. Test DSN: `postgres://postgres:xmtp@localhost:25432/postgres?sslmode=disable`.
 
 ### Testing Approach
 
 - Unit tests use mockery-generated mocks for interface boundaries
 - API tests start a real HTTP server with mocked services
-- `test/helpers.go` provides `CreateTestDb()` with automatic table truncation
+- `test/helpers.go` provides isolated per-test PostgreSQL databases via `CreateTestDb()`
 - Integration tests run full stack in Docker with HTTP delivery for verification
