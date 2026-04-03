@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ $# -ne 1 ]]; then
+    echo "usage: $0 <migration-name>" >&2
+    exit 1
+fi
+
+go run ./cmd/server --create-migration "$1"

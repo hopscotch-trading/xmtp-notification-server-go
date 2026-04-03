@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"log"
 	"os"
@@ -11,11 +12,8 @@ import (
 	"time"
 
 	"github.com/jessevdk/go-flags"
-	"github.com/uptrace/bun"
-	"github.com/uptrace/bun/migrate"
 	"github.com/xmtp/example-notification-server-go/pkg/api"
 	database "github.com/xmtp/example-notification-server-go/pkg/db"
-	"github.com/xmtp/example-notification-server-go/pkg/db/migrations"
 	"github.com/xmtp/example-notification-server-go/pkg/delivery"
 	"github.com/xmtp/example-notification-server-go/pkg/installations"
 	"github.com/xmtp/example-notification-server-go/pkg/interfaces"
@@ -124,8 +122,8 @@ func waitForShutdown() {
 	<-termChannel
 }
 
-func initDb() *bun.DB {
-	db, err := database.CreateBunDB(opts.DbConnectionString, 10*time.Second)
+func initDb() *sql.DB {
+	db, err := database.CreateDB(opts.DbConnectionString, 10*time.Second)
 	if err != nil {
 		log.Fatal("db creation error", zap.Error(err))
 	}
@@ -139,18 +137,14 @@ func initDb() *bun.DB {
 }
 
 func createMigration() error {
-	db, err := database.CreateBunDB(opts.DbConnectionString, 30*time.Second)
+	files, err := database.CreateMigrationFiles(opts.CreateMigration)
 	if err != nil {
 		return err
 	}
-
-	migrator := migrate.NewMigrator(db, migrations.Migrations)
-	files, err := migrator.CreateSQLMigrations(context.Background(), opts.CreateMigration)
-	for _, mf := range files {
-		fmt.Printf("created migration %s (%s)\n", mf.Name, mf.Path)
+	for _, file := range files {
+		fmt.Printf("created migration %s (%s)\n", file.Name, file.Path)
 	}
-
-	return err
+	return nil
 }
 
 func shortGitCommit() string {
