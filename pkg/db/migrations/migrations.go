@@ -19,6 +19,11 @@ import (
 //go:embed *.sql
 var migrationFS embed.FS
 
+// Migrate always uses golang-migrate's schema_migrations table as the source of truth.
+// For databases that were previously bootstrapped by Bun, we first "reconcile" by
+// recording the latest golang-migrate version in schema_migrations without replaying
+// the new migrations. That handoff lets already-initialized deployments keep their
+// existing application tables and begin using golang-migrate from the next startup on.
 func Migrate(ctx context.Context, db *sql.DB) error {
 	if err := reconcileExistingBunSchema(ctx, db); err != nil {
 		return err
@@ -63,6 +68,21 @@ func Migrate(ctx context.Context, db *sql.DB) error {
 	return nil
 }
 
+// reconcileExistingBunSchema bridges databases that already have the legacy Bun-era
+// application schema but do not yet have golang-migrate bookkeeping.
+//
+// Before reconciliation:
+//   - the application tables already exist (installations, device_delivery_mechanisms,
+//     subscriptions, subscription_hmac_keys, plus the legacy indexes/columns)
+//   - schema_migrations is missing or empty
+//
+// After reconciliation:
+//   - the application tables are unchanged
+//   - schema_migrations exists and contains the latest embedded migration version
+//
+// We intentionally do not translate Bun's bun_migrations metadata into golang-migrate
+// rows. The application data tables are what matter for boot compatibility, so we detect
+// the fully-initialized legacy schema directly and mark the new migration runner as caught up.
 func reconcileExistingBunSchema(ctx context.Context, db *sql.DB) error {
 	alreadyTracked, err := hasSchemaMigrationState(ctx, db)
 	if err != nil {

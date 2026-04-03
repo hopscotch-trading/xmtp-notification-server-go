@@ -130,6 +130,37 @@ To add a new database migration, run:
 
 This creates paired `.up.sql` and `.down.sql` files in `pkg/db/migrations`.
 
+### Migrating existing Bun databases
+
+This repository now uses `golang-migrate` for schema tracking. The migration metadata table for the new system is:
+
+- `schema_migrations`: owned by `golang-migrate`
+
+Older deployments may also have:
+
+- `bun_migrations`: Bun's old migration bookkeeping table
+
+The application tables are the same logical tables in both worlds:
+
+- `installations`
+- `device_delivery_mechanisms`
+- `subscriptions`
+- `subscription_hmac_keys`
+
+On startup, the server does one of two things:
+
+1. Fresh database:
+   It runs the embedded `.up.sql` files and creates both the application tables and `schema_migrations`.
+2. Existing Bun-initialized database:
+   It detects that the full legacy application schema already exists, creates `schema_migrations` if needed, and records the latest embedded migration version without replaying those migrations.
+
+In this codebase, "reconcile" means that second path: we leave the existing application tables alone and only establish `schema_migrations` so `golang-migrate` can take over from that point forward.
+
+Expected state after a successful startup:
+
+- Fresh DB: application tables exist and `schema_migrations` contains the latest version.
+- Bun-initialized DB: the same application tables still exist, `schema_migrations` now exists and contains the latest version, and `bun_migrations` may still exist but is no longer used by the server.
+
 ### Testing the API
 
 The API supports plain JSON and can be used via CURL
