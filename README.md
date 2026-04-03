@@ -152,14 +152,16 @@ On startup, the server does one of two things:
 1. Fresh database:
    It runs the embedded `.up.sql` files and creates both the application tables and `schema_migrations`.
 2. Existing Bun-initialized database:
-   It detects that the full legacy application schema already exists, creates `schema_migrations` if needed, and records the latest embedded migration version without replaying those migrations.
+   It detects that the full legacy application schema already exists, creates `schema_migrations` if needed, and records the fixed Bun handoff version (`2`) without replaying those baseline migrations.
 
 In this codebase, "reconcile" means that second path: we leave the existing application tables alone and only establish `schema_migrations` so `golang-migrate` can take over from that point forward.
+
+That handoff version is intentionally hardcoded. If we add new `golang-migrate` migrations later that never existed in Bun, older deployments must still run them after upgrade rather than being incorrectly marked as already up to date.
 
 Expected state after a successful startup:
 
 - Fresh DB: application tables exist and `schema_migrations` contains the latest version.
-- Bun-initialized DB: the same application tables still exist, `schema_migrations` now exists and contains the latest version, and `bun_migrations` may still exist but is no longer used by the server.
+- Bun-initialized DB: the same application tables still exist, `schema_migrations` now exists and contains version `2`, and `bun_migrations` may still exist but is no longer used by the server.
 
 ### Testing the API
 

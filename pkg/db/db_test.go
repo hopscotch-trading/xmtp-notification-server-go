@@ -72,9 +72,9 @@ func TestMigrateExistingLegacySchema(t *testing.T) {
 	require.NoError(t, database.Migrate(t.Context(), db))
 
 	var version int
-	err := db.QueryRowContext(context.Background(), `SELECT COUNT(*) FROM schema_migrations`).Scan(&version)
+	err := db.QueryRowContext(context.Background(), `SELECT version FROM schema_migrations`).Scan(&version)
 	require.NoError(t, err)
-	require.Equal(t, 1, version)
+	require.Equal(t, 2, version)
 }
 
 func createRawDB(t *testing.T) *sql.DB {

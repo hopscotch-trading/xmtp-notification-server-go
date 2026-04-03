@@ -5,11 +5,6 @@ import (
 	"database/sql"
 	"embed"
 	"errors"
-	"fmt"
-	"path/filepath"
-	"slices"
-	"strconv"
-	"strings"
 
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
@@ -19,11 +14,21 @@ import (
 //go:embed *.sql
 var migrationFS embed.FS
 
+// Legacy Bun deployments are considered equivalent to the first two golang-migrate
+// migrations:
+//   1. init schema
+//   2. add subscription_hmac_keys + is_silent + unique subscription index
+//
+// Reconciliation must stay pinned to that handoff point so future golang-migrate-only
+// migrations are still applied normally after older deployments upgrade.
+const legacyBunBaselineVersion = 2
+
 // Migrate always uses golang-migrate's schema_migrations table as the source of truth.
 // For databases that were previously bootstrapped by Bun, we first "reconcile" by
-// recording the latest golang-migrate version in schema_migrations without replaying
-// the new migrations. That handoff lets already-initialized deployments keep their
-// existing application tables and begin using golang-migrate from the next startup on.
+// recording the fixed Bun-equivalent golang-migrate version in schema_migrations
+// without replaying those baseline migrations. That handoff lets already-initialized
+// deployments keep their existing application tables while still allowing future
+// golang-migrate-only migrations to run normally after upgrade.
 func Migrate(ctx context.Context, db *sql.DB) error {
 	if err := reconcileExistingBunSchema(ctx, db); err != nil {
 		return err
@@ -78,11 +83,12 @@ func Migrate(ctx context.Context, db *sql.DB) error {
 //
 // After reconciliation:
 //   - the application tables are unchanged
-//   - schema_migrations exists and contains the latest embedded migration version
+//   - schema_migrations exists and contains the fixed Bun-equivalent baseline version
 //
 // We intentionally do not translate Bun's bun_migrations metadata into golang-migrate
 // rows. The application data tables are what matter for boot compatibility, so we detect
-// the fully-initialized legacy schema directly and mark the new migration runner as caught up.
+// the fully-initialized legacy schema directly and mark the new migration runner at the
+// Bun handoff version rather than at whatever the latest embedded migration happens to be.
 func reconcileExistingBunSchema(ctx context.Context, db *sql.DB) error {
 	alreadyTracked, err := hasSchemaMigrationState(ctx, db)
 	if err != nil {
@@ -100,11 +106,6 @@ func reconcileExistingBunSchema(ctx context.Context, db *sql.DB) error {
 		return nil
 	}
 
-	version, err := latestMigrationVersion()
-	if err != nil {
-		return err
-	}
-
 	if _, err := db.ExecContext(ctx, `
 		CREATE TABLE IF NOT EXISTS schema_migrations (
 			version bigint NOT NULL PRIMARY KEY,
@@ -117,7 +118,7 @@ func reconcileExistingBunSchema(ctx context.Context, db *sql.DB) error {
 		INSERT INTO schema_migrations (version, dirty)
 		VALUES ($1, FALSE)
 		ON CONFLICT (version) DO UPDATE SET dirty = EXCLUDED.dirty
-	`, version)
+	`, legacyBunBaselineVersion)
 	return err
 }
 
@@ -165,38 +166,4 @@ func hasLegacySchema(ctx context.Context, db *sql.DB) (bool, error) {
 	}
 
 	return true, nil
-}
-
-func latestMigrationVersion() (uint, error) {
-	entries, err := migrationFS.ReadDir(".")
-	if err != nil {
-		return 0, err
-	}
-
-	versions := make([]uint, 0, len(entries))
-	for _, entry := range entries {
-		name := entry.Name()
-		if entry.IsDir() || !strings.HasSuffix(name, ".up.sql") {
-			continue
-		}
-
-		base := filepath.Base(name)
-		parts := strings.SplitN(base, "_", 2)
-		if len(parts) != 2 {
-			return 0, fmt.Errorf("invalid migration filename %q", name)
-		}
-
-		version, err := strconv.ParseUint(parts[0], 10, 64)
-		if err != nil {
-			return 0, fmt.Errorf("parse migration version %q: %w", name, err)
-		}
-		versions = append(versions, uint(version))
-	}
-
-	if len(versions) == 0 {
-		return 0, errors.New("no embedded up migrations found")
-	}
-
-	slices.Sort(versions)
-	return versions[len(versions)-1], nil
 }
