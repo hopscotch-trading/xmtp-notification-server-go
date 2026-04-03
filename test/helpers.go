@@ -47,7 +47,9 @@ func CreateEmptyTestDb(t *testing.T) *sql.DB {
 		_ = db.Close()
 
 		adminDB := openDatabase(t, TEST_DSN)
-		defer adminDB.Close()
+		defer func() {
+			_ = adminDB.Close()
+		}()
 
 		_, _ = adminDB.ExecContext(
 			context.Background(),

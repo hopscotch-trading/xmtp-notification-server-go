@@ -43,7 +43,9 @@ func fetchSubscriptions(t *testing.T, ctx context.Context, db *sql.DB, installat
 		installationID,
 	)
 	require.NoError(t, err)
-	defer rows.Close()
+	defer func() {
+		require.NoError(t, rows.Close())
+	}()
 
 	var results []storedSubscription
 	for rows.Next() {

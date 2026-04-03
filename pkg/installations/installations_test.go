@@ -67,7 +67,9 @@ func fetchInstallation(t *testing.T, ctx context.Context, db *sql.DB, installati
 		installationID,
 	)
 	require.NoError(t, err)
-	defer rows.Close()
+	defer func() {
+		require.NoError(t, rows.Close())
+	}()
 
 	for rows.Next() {
 		var mechanism storedDeliveryMechanism
