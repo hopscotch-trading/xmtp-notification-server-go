@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net"
 	"net/http"
 	"time"
 
@@ -24,6 +25,7 @@ type ApiServer struct {
 	subscriptions interfaces.Subscriptions
 	httpServer    *http.Server
 	port          int
+	listener      net.Listener
 }
 
 func NewApiServer(logger *zap.Logger, opts options.ApiOptions, installations interfaces.Installations, subscriptions interfaces.Subscriptions) *ApiServer {
@@ -35,19 +37,34 @@ func NewApiServer(logger *zap.Logger, opts options.ApiOptions, installations int
 	}
 }
 
+func (s *ApiServer) SetListener(listener net.Listener) {
+	s.listener = listener
+}
+
 func (s *ApiServer) Start() {
 	mux := http.NewServeMux()
 	path, handler := notificationsv1connect.NewNotificationsHandler(s)
 	mux.Handle(path, handler)
+
+	addr := fmt.Sprintf(":%d", s.port)
+	if s.listener != nil {
+		addr = s.listener.Addr().String()
+	}
 	s.httpServer = &http.Server{
-		Addr:    fmt.Sprintf(":%d", s.port),
+		Addr:    addr,
 		Handler: h2c.NewHandler(mux, &http2.Server{}),
 	}
 
 	s.logger.Info("api server started", zap.String("address", s.httpServer.Addr), zap.Int("port", s.port), zap.String("path", path))
 
 	go func() {
-		if err := s.httpServer.ListenAndServe(); err != nil {
+		var err error
+		if s.listener != nil {
+			err = s.httpServer.Serve(s.listener)
+		} else {
+			err = s.httpServer.ListenAndServe()
+		}
+		if err != nil {
 			s.logger.Info("api server stopped", zap.Error(err))
 		}
 	}()
