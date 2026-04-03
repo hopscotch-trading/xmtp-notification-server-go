@@ -39,6 +39,9 @@ func NewApiServer(logger *zap.Logger, opts options.ApiOptions, installations int
 
 func (s *ApiServer) SetListener(listener net.Listener) {
 	s.listener = listener
+	if tcpAddr, ok := listener.Addr().(*net.TCPAddr); ok {
+		s.port = tcpAddr.Port
+	}
 }
 
 func (s *ApiServer) Start() {
