@@ -132,36 +132,9 @@ This creates paired `.up.sql` and `.down.sql` files in `pkg/db/migrations`.
 
 ### Migrating existing Bun databases
 
-This repository now uses `golang-migrate` for schema tracking. The migration metadata table for the new system is:
+This repository now uses `golang-migrate` for schema tracking. Fresh databases run the embedded migrations normally. Existing Bun-initialized databases are detected on startup and reconciled onto the `golang-migrate` bookkeeping table without rebuilding the existing application tables.
 
-- `schema_migrations`: owned by `golang-migrate`
-
-Older deployments may also have:
-
-- `bun_migrations`: Bun's old migration bookkeeping table
-
-The application tables are the same logical tables in both worlds:
-
-- `installations`
-- `device_delivery_mechanisms`
-- `subscriptions`
-- `subscription_hmac_keys`
-
-On startup, the server does one of two things:
-
-1. Fresh database:
-   It runs the embedded `.up.sql` files and creates both the application tables and `schema_migrations`.
-2. Existing Bun-initialized database:
-   It detects that the full legacy application schema already exists, creates `schema_migrations` if needed, and records the fixed Bun handoff version (`2`) without replaying those baseline migrations.
-
-In this codebase, "reconcile" means that second path: we leave the existing application tables alone and only establish `schema_migrations` so `golang-migrate` can take over from that point forward.
-
-That handoff version is intentionally hardcoded. If we add new `golang-migrate` migrations later that never existed in Bun, older deployments must still run them after upgrade rather than being incorrectly marked as already up to date.
-
-Expected state after a successful startup:
-
-- Fresh DB: application tables exist and `schema_migrations` contains the latest version.
-- Bun-initialized DB: the same application tables still exist, `schema_migrations` now exists and contains version `2`, and `bun_migrations` may still exist but is no longer used by the server.
+If you need the exact Bun-to-`golang-migrate` handoff details, see `pkg/db/AGENTS.md` and `pkg/db/migrations/migrations.go`.
 
 ### Testing the API
 
