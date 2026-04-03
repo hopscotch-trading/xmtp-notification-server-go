@@ -45,7 +45,7 @@ func setupTest(t *testing.T) testContext {
 		},
 	}
 	apiServer := NewApiServer(logging.CreateLogger("console", "info"), options.ApiOptions{Port: port}, installationsMock, subscriptionsMock)
-	apiServer.SetListener(listener)
+	require.NoError(t, apiServer.SetListener(listener))
 	apiServer.Start()
 	time.Sleep(50 * time.Millisecond)
 
@@ -63,6 +63,26 @@ func setupTest(t *testing.T) testContext {
 		subscriptionsMock: subscriptionsMock,
 		apiServer:         apiServer,
 	}
+}
+
+func Test_SetListenerAfterStartReturnsError(t *testing.T) {
+	apiServer := NewApiServer(
+		logging.CreateLogger("console", "info"),
+		options.ApiOptions{Port: 18081},
+		mocks.NewInstallations(t),
+		mocks.NewSubscriptions(t),
+	)
+	apiServer.Start()
+	defer apiServer.Stop()
+
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(t, err)
+	defer func() {
+		require.NoError(t, listener.Close())
+	}()
+
+	err = apiServer.SetListener(listener)
+	require.EqualError(t, err, "api server already started")
 }
 
 func Test_RegisterInstallation(t *testing.T) {

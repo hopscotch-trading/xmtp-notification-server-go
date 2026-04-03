@@ -37,11 +37,17 @@ func NewApiServer(logger *zap.Logger, opts options.ApiOptions, installations int
 	}
 }
 
-func (s *ApiServer) SetListener(listener net.Listener) {
+func (s *ApiServer) SetListener(listener net.Listener) error {
+	if s.httpServer != nil {
+		return errors.New("api server already started")
+	}
+
 	s.listener = listener
 	if tcpAddr, ok := listener.Addr().(*net.TCPAddr); ok {
 		s.port = tcpAddr.Port
 	}
+
+	return nil
 }
 
 func (s *ApiServer) Start() {
