@@ -11,35 +11,83 @@ import SwiftProtobuf
 
 public protocol Xmtp_Xmtpv4_MessageApi_ReplicationApiClientInterface: Sendable {
 
+    /// Node-to-node originator subscription
+    func `subscribeOriginators`(headers: Connect.Headers, onResult: @escaping @Sendable (Connect.StreamResult<Xmtp_Xmtpv4_MessageApi_SubscribeOriginatorsResponse>) -> Void) -> any Connect.ServerOnlyStreamInterface<Xmtp_Xmtpv4_MessageApi_SubscribeOriginatorsRequest>
+
+    /// Node-to-node originator subscription
+    @available(iOS 13, *)
+    func `subscribeOriginators`(headers: Connect.Headers) -> any Connect.ServerOnlyAsyncStreamInterface<Xmtp_Xmtpv4_MessageApi_SubscribeOriginatorsRequest, Xmtp_Xmtpv4_MessageApi_SubscribeOriginatorsResponse>
+
+    /// Deprecated: use SubscribeOriginators for node queries,
+    /// QueryApi.SubscribeTopics for client queries
+    @available(iOS, introduced: 12, deprecated: 12, message: "This RPC has been marked as deprecated in its `.proto` file.")
+    @available(macOS, introduced: 10.15, deprecated: 10.15, message: "This RPC has been marked as deprecated in its `.proto` file.")
+    @available(tvOS, introduced: 13, deprecated: 13, message: "This RPC has been marked as deprecated in its `.proto` file.")
+    @available(watchOS, introduced: 6, deprecated: 6, message: "This RPC has been marked as deprecated in its `.proto` file.")
     func `subscribeEnvelopes`(headers: Connect.Headers, onResult: @escaping @Sendable (Connect.StreamResult<Xmtp_Xmtpv4_MessageApi_SubscribeEnvelopesResponse>) -> Void) -> any Connect.ServerOnlyStreamInterface<Xmtp_Xmtpv4_MessageApi_SubscribeEnvelopesRequest>
 
-    @available(iOS 13, *)
+    /// Deprecated: use SubscribeOriginators for node queries,
+    /// QueryApi.SubscribeTopics for client queries
+    @available(iOS, introduced: 13, deprecated: 13, message: "This RPC has been marked as deprecated in its `.proto` file.")
     func `subscribeEnvelopes`(headers: Connect.Headers) -> any Connect.ServerOnlyAsyncStreamInterface<Xmtp_Xmtpv4_MessageApi_SubscribeEnvelopesRequest, Xmtp_Xmtpv4_MessageApi_SubscribeEnvelopesResponse>
 
+    /// Deprecated: moved to QueryApi
+    @available(iOS, introduced: 12, deprecated: 12, message: "This RPC has been marked as deprecated in its `.proto` file.")
+    @available(macOS, introduced: 10.15, deprecated: 10.15, message: "This RPC has been marked as deprecated in its `.proto` file.")
+    @available(tvOS, introduced: 13, deprecated: 13, message: "This RPC has been marked as deprecated in its `.proto` file.")
+    @available(watchOS, introduced: 6, deprecated: 6, message: "This RPC has been marked as deprecated in its `.proto` file.")
+    func `subscribeTopics`(headers: Connect.Headers, onResult: @escaping @Sendable (Connect.StreamResult<Xmtp_Xmtpv4_MessageApi_SubscribeTopicsResponse>) -> Void) -> any Connect.ServerOnlyStreamInterface<Xmtp_Xmtpv4_MessageApi_SubscribeTopicsRequest>
+
+    /// Deprecated: moved to QueryApi
+    @available(iOS, introduced: 13, deprecated: 13, message: "This RPC has been marked as deprecated in its `.proto` file.")
+    func `subscribeTopics`(headers: Connect.Headers) -> any Connect.ServerOnlyAsyncStreamInterface<Xmtp_Xmtpv4_MessageApi_SubscribeTopicsRequest, Xmtp_Xmtpv4_MessageApi_SubscribeTopicsResponse>
+
+    /// Deprecated: moved to QueryApi
+    @available(iOS, introduced: 12, deprecated: 12, message: "This RPC has been marked as deprecated in its `.proto` file.")
+    @available(macOS, introduced: 10.15, deprecated: 10.15, message: "This RPC has been marked as deprecated in its `.proto` file.")
+    @available(tvOS, introduced: 13, deprecated: 13, message: "This RPC has been marked as deprecated in its `.proto` file.")
+    @available(watchOS, introduced: 6, deprecated: 6, message: "This RPC has been marked as deprecated in its `.proto` file.")
     @discardableResult
     func `queryEnvelopes`(request: Xmtp_Xmtpv4_MessageApi_QueryEnvelopesRequest, headers: Connect.Headers, completion: @escaping @Sendable (ResponseMessage<Xmtp_Xmtpv4_MessageApi_QueryEnvelopesResponse>) -> Void) -> Connect.Cancelable
 
-    @available(iOS 13, *)
+    /// Deprecated: moved to QueryApi
+    @available(iOS, introduced: 13, deprecated: 13, message: "This RPC has been marked as deprecated in its `.proto` file.")
     func `queryEnvelopes`(request: Xmtp_Xmtpv4_MessageApi_QueryEnvelopesRequest, headers: Connect.Headers) async -> ResponseMessage<Xmtp_Xmtpv4_MessageApi_QueryEnvelopesResponse>
 
+    /// Deprecated: moved to PublishApi
+    @available(iOS, introduced: 12, deprecated: 12, message: "This RPC has been marked as deprecated in its `.proto` file.")
+    @available(macOS, introduced: 10.15, deprecated: 10.15, message: "This RPC has been marked as deprecated in its `.proto` file.")
+    @available(tvOS, introduced: 13, deprecated: 13, message: "This RPC has been marked as deprecated in its `.proto` file.")
+    @available(watchOS, introduced: 6, deprecated: 6, message: "This RPC has been marked as deprecated in its `.proto` file.")
     @discardableResult
     func `publishPayerEnvelopes`(request: Xmtp_Xmtpv4_MessageApi_PublishPayerEnvelopesRequest, headers: Connect.Headers, completion: @escaping @Sendable (ResponseMessage<Xmtp_Xmtpv4_MessageApi_PublishPayerEnvelopesResponse>) -> Void) -> Connect.Cancelable
 
-    @available(iOS 13, *)
+    /// Deprecated: moved to PublishApi
+    @available(iOS, introduced: 13, deprecated: 13, message: "This RPC has been marked as deprecated in its `.proto` file.")
     func `publishPayerEnvelopes`(request: Xmtp_Xmtpv4_MessageApi_PublishPayerEnvelopesRequest, headers: Connect.Headers) async -> ResponseMessage<Xmtp_Xmtpv4_MessageApi_PublishPayerEnvelopesResponse>
 
+    /// Deprecated: moved to QueryApi
+    @available(iOS, introduced: 12, deprecated: 12, message: "This RPC has been marked as deprecated in its `.proto` file.")
+    @available(macOS, introduced: 10.15, deprecated: 10.15, message: "This RPC has been marked as deprecated in its `.proto` file.")
+    @available(tvOS, introduced: 13, deprecated: 13, message: "This RPC has been marked as deprecated in its `.proto` file.")
+    @available(watchOS, introduced: 6, deprecated: 6, message: "This RPC has been marked as deprecated in its `.proto` file.")
     @discardableResult
     func `getInboxIds`(request: Xmtp_Xmtpv4_MessageApi_GetInboxIdsRequest, headers: Connect.Headers, completion: @escaping @Sendable (ResponseMessage<Xmtp_Xmtpv4_MessageApi_GetInboxIdsResponse>) -> Void) -> Connect.Cancelable
 
-    @available(iOS 13, *)
+    /// Deprecated: moved to QueryApi
+    @available(iOS, introduced: 13, deprecated: 13, message: "This RPC has been marked as deprecated in its `.proto` file.")
     func `getInboxIds`(request: Xmtp_Xmtpv4_MessageApi_GetInboxIdsRequest, headers: Connect.Headers) async -> ResponseMessage<Xmtp_Xmtpv4_MessageApi_GetInboxIdsResponse>
 
-    /// Get the newest envelope for each topic
+    /// Deprecated: moved to QueryApi
+    @available(iOS, introduced: 12, deprecated: 12, message: "This RPC has been marked as deprecated in its `.proto` file.")
+    @available(macOS, introduced: 10.15, deprecated: 10.15, message: "This RPC has been marked as deprecated in its `.proto` file.")
+    @available(tvOS, introduced: 13, deprecated: 13, message: "This RPC has been marked as deprecated in its `.proto` file.")
+    @available(watchOS, introduced: 6, deprecated: 6, message: "This RPC has been marked as deprecated in its `.proto` file.")
     @discardableResult
     func `getNewestEnvelope`(request: Xmtp_Xmtpv4_MessageApi_GetNewestEnvelopeRequest, headers: Connect.Headers, completion: @escaping @Sendable (ResponseMessage<Xmtp_Xmtpv4_MessageApi_GetNewestEnvelopeResponse>) -> Void) -> Connect.Cancelable
 
-    /// Get the newest envelope for each topic
-    @available(iOS 13, *)
+    /// Deprecated: moved to QueryApi
+    @available(iOS, introduced: 13, deprecated: 13, message: "This RPC has been marked as deprecated in its `.proto` file.")
     func `getNewestEnvelope`(request: Xmtp_Xmtpv4_MessageApi_GetNewestEnvelopeRequest, headers: Connect.Headers) async -> ResponseMessage<Xmtp_Xmtpv4_MessageApi_GetNewestEnvelopeResponse>
 }
 
@@ -51,58 +99,102 @@ public final class Xmtp_Xmtpv4_MessageApi_ReplicationApiClient: Xmtp_Xmtpv4_Mess
         self.client = client
     }
 
+    public func `subscribeOriginators`(headers: Connect.Headers = [:], onResult: @escaping @Sendable (Connect.StreamResult<Xmtp_Xmtpv4_MessageApi_SubscribeOriginatorsResponse>) -> Void) -> any Connect.ServerOnlyStreamInterface<Xmtp_Xmtpv4_MessageApi_SubscribeOriginatorsRequest> {
+        return self.client.serverOnlyStream(path: "/xmtp.xmtpv4.message_api.ReplicationApi/SubscribeOriginators", headers: headers, onResult: onResult)
+    }
+
+    @available(iOS 13, *)
+    public func `subscribeOriginators`(headers: Connect.Headers = [:]) -> any Connect.ServerOnlyAsyncStreamInterface<Xmtp_Xmtpv4_MessageApi_SubscribeOriginatorsRequest, Xmtp_Xmtpv4_MessageApi_SubscribeOriginatorsResponse> {
+        return self.client.serverOnlyStream(path: "/xmtp.xmtpv4.message_api.ReplicationApi/SubscribeOriginators", headers: headers)
+    }
+
+    @available(iOS, introduced: 12, deprecated: 12, message: "This RPC has been marked as deprecated in its `.proto` file.")
+    @available(macOS, introduced: 10.15, deprecated: 10.15, message: "This RPC has been marked as deprecated in its `.proto` file.")
+    @available(tvOS, introduced: 13, deprecated: 13, message: "This RPC has been marked as deprecated in its `.proto` file.")
+    @available(watchOS, introduced: 6, deprecated: 6, message: "This RPC has been marked as deprecated in its `.proto` file.")
     public func `subscribeEnvelopes`(headers: Connect.Headers = [:], onResult: @escaping @Sendable (Connect.StreamResult<Xmtp_Xmtpv4_MessageApi_SubscribeEnvelopesResponse>) -> Void) -> any Connect.ServerOnlyStreamInterface<Xmtp_Xmtpv4_MessageApi_SubscribeEnvelopesRequest> {
         return self.client.serverOnlyStream(path: "/xmtp.xmtpv4.message_api.ReplicationApi/SubscribeEnvelopes", headers: headers, onResult: onResult)
     }
 
-    @available(iOS 13, *)
+    @available(iOS, introduced: 13, deprecated: 13, message: "This RPC has been marked as deprecated in its `.proto` file.")
     public func `subscribeEnvelopes`(headers: Connect.Headers = [:]) -> any Connect.ServerOnlyAsyncStreamInterface<Xmtp_Xmtpv4_MessageApi_SubscribeEnvelopesRequest, Xmtp_Xmtpv4_MessageApi_SubscribeEnvelopesResponse> {
         return self.client.serverOnlyStream(path: "/xmtp.xmtpv4.message_api.ReplicationApi/SubscribeEnvelopes", headers: headers)
     }
 
+    @available(iOS, introduced: 12, deprecated: 12, message: "This RPC has been marked as deprecated in its `.proto` file.")
+    @available(macOS, introduced: 10.15, deprecated: 10.15, message: "This RPC has been marked as deprecated in its `.proto` file.")
+    @available(tvOS, introduced: 13, deprecated: 13, message: "This RPC has been marked as deprecated in its `.proto` file.")
+    @available(watchOS, introduced: 6, deprecated: 6, message: "This RPC has been marked as deprecated in its `.proto` file.")
+    public func `subscribeTopics`(headers: Connect.Headers = [:], onResult: @escaping @Sendable (Connect.StreamResult<Xmtp_Xmtpv4_MessageApi_SubscribeTopicsResponse>) -> Void) -> any Connect.ServerOnlyStreamInterface<Xmtp_Xmtpv4_MessageApi_SubscribeTopicsRequest> {
+        return self.client.serverOnlyStream(path: "/xmtp.xmtpv4.message_api.ReplicationApi/SubscribeTopics", headers: headers, onResult: onResult)
+    }
+
+    @available(iOS, introduced: 13, deprecated: 13, message: "This RPC has been marked as deprecated in its `.proto` file.")
+    public func `subscribeTopics`(headers: Connect.Headers = [:]) -> any Connect.ServerOnlyAsyncStreamInterface<Xmtp_Xmtpv4_MessageApi_SubscribeTopicsRequest, Xmtp_Xmtpv4_MessageApi_SubscribeTopicsResponse> {
+        return self.client.serverOnlyStream(path: "/xmtp.xmtpv4.message_api.ReplicationApi/SubscribeTopics", headers: headers)
+    }
+
+    @available(iOS, introduced: 12, deprecated: 12, message: "This RPC has been marked as deprecated in its `.proto` file.")
+    @available(macOS, introduced: 10.15, deprecated: 10.15, message: "This RPC has been marked as deprecated in its `.proto` file.")
+    @available(tvOS, introduced: 13, deprecated: 13, message: "This RPC has been marked as deprecated in its `.proto` file.")
+    @available(watchOS, introduced: 6, deprecated: 6, message: "This RPC has been marked as deprecated in its `.proto` file.")
     @discardableResult
     public func `queryEnvelopes`(request: Xmtp_Xmtpv4_MessageApi_QueryEnvelopesRequest, headers: Connect.Headers = [:], completion: @escaping @Sendable (ResponseMessage<Xmtp_Xmtpv4_MessageApi_QueryEnvelopesResponse>) -> Void) -> Connect.Cancelable {
         return self.client.unary(path: "/xmtp.xmtpv4.message_api.ReplicationApi/QueryEnvelopes", idempotencyLevel: .unknown, request: request, headers: headers, completion: completion)
     }
 
-    @available(iOS 13, *)
+    @available(iOS, introduced: 13, deprecated: 13, message: "This RPC has been marked as deprecated in its `.proto` file.")
     public func `queryEnvelopes`(request: Xmtp_Xmtpv4_MessageApi_QueryEnvelopesRequest, headers: Connect.Headers = [:]) async -> ResponseMessage<Xmtp_Xmtpv4_MessageApi_QueryEnvelopesResponse> {
         return await self.client.unary(path: "/xmtp.xmtpv4.message_api.ReplicationApi/QueryEnvelopes", idempotencyLevel: .unknown, request: request, headers: headers)
     }
 
+    @available(iOS, introduced: 12, deprecated: 12, message: "This RPC has been marked as deprecated in its `.proto` file.")
+    @available(macOS, introduced: 10.15, deprecated: 10.15, message: "This RPC has been marked as deprecated in its `.proto` file.")
+    @available(tvOS, introduced: 13, deprecated: 13, message: "This RPC has been marked as deprecated in its `.proto` file.")
+    @available(watchOS, introduced: 6, deprecated: 6, message: "This RPC has been marked as deprecated in its `.proto` file.")
     @discardableResult
     public func `publishPayerEnvelopes`(request: Xmtp_Xmtpv4_MessageApi_PublishPayerEnvelopesRequest, headers: Connect.Headers = [:], completion: @escaping @Sendable (ResponseMessage<Xmtp_Xmtpv4_MessageApi_PublishPayerEnvelopesResponse>) -> Void) -> Connect.Cancelable {
         return self.client.unary(path: "/xmtp.xmtpv4.message_api.ReplicationApi/PublishPayerEnvelopes", idempotencyLevel: .unknown, request: request, headers: headers, completion: completion)
     }
 
-    @available(iOS 13, *)
+    @available(iOS, introduced: 13, deprecated: 13, message: "This RPC has been marked as deprecated in its `.proto` file.")
     public func `publishPayerEnvelopes`(request: Xmtp_Xmtpv4_MessageApi_PublishPayerEnvelopesRequest, headers: Connect.Headers = [:]) async -> ResponseMessage<Xmtp_Xmtpv4_MessageApi_PublishPayerEnvelopesResponse> {
         return await self.client.unary(path: "/xmtp.xmtpv4.message_api.ReplicationApi/PublishPayerEnvelopes", idempotencyLevel: .unknown, request: request, headers: headers)
     }
 
+    @available(iOS, introduced: 12, deprecated: 12, message: "This RPC has been marked as deprecated in its `.proto` file.")
+    @available(macOS, introduced: 10.15, deprecated: 10.15, message: "This RPC has been marked as deprecated in its `.proto` file.")
+    @available(tvOS, introduced: 13, deprecated: 13, message: "This RPC has been marked as deprecated in its `.proto` file.")
+    @available(watchOS, introduced: 6, deprecated: 6, message: "This RPC has been marked as deprecated in its `.proto` file.")
     @discardableResult
     public func `getInboxIds`(request: Xmtp_Xmtpv4_MessageApi_GetInboxIdsRequest, headers: Connect.Headers = [:], completion: @escaping @Sendable (ResponseMessage<Xmtp_Xmtpv4_MessageApi_GetInboxIdsResponse>) -> Void) -> Connect.Cancelable {
         return self.client.unary(path: "/xmtp.xmtpv4.message_api.ReplicationApi/GetInboxIds", idempotencyLevel: .unknown, request: request, headers: headers, completion: completion)
     }
 
-    @available(iOS 13, *)
+    @available(iOS, introduced: 13, deprecated: 13, message: "This RPC has been marked as deprecated in its `.proto` file.")
     public func `getInboxIds`(request: Xmtp_Xmtpv4_MessageApi_GetInboxIdsRequest, headers: Connect.Headers = [:]) async -> ResponseMessage<Xmtp_Xmtpv4_MessageApi_GetInboxIdsResponse> {
         return await self.client.unary(path: "/xmtp.xmtpv4.message_api.ReplicationApi/GetInboxIds", idempotencyLevel: .unknown, request: request, headers: headers)
     }
 
+    @available(iOS, introduced: 12, deprecated: 12, message: "This RPC has been marked as deprecated in its `.proto` file.")
+    @available(macOS, introduced: 10.15, deprecated: 10.15, message: "This RPC has been marked as deprecated in its `.proto` file.")
+    @available(tvOS, introduced: 13, deprecated: 13, message: "This RPC has been marked as deprecated in its `.proto` file.")
+    @available(watchOS, introduced: 6, deprecated: 6, message: "This RPC has been marked as deprecated in its `.proto` file.")
     @discardableResult
     public func `getNewestEnvelope`(request: Xmtp_Xmtpv4_MessageApi_GetNewestEnvelopeRequest, headers: Connect.Headers = [:], completion: @escaping @Sendable (ResponseMessage<Xmtp_Xmtpv4_MessageApi_GetNewestEnvelopeResponse>) -> Void) -> Connect.Cancelable {
         return self.client.unary(path: "/xmtp.xmtpv4.message_api.ReplicationApi/GetNewestEnvelope", idempotencyLevel: .unknown, request: request, headers: headers, completion: completion)
     }
 
-    @available(iOS 13, *)
+    @available(iOS, introduced: 13, deprecated: 13, message: "This RPC has been marked as deprecated in its `.proto` file.")
     public func `getNewestEnvelope`(request: Xmtp_Xmtpv4_MessageApi_GetNewestEnvelopeRequest, headers: Connect.Headers = [:]) async -> ResponseMessage<Xmtp_Xmtpv4_MessageApi_GetNewestEnvelopeResponse> {
         return await self.client.unary(path: "/xmtp.xmtpv4.message_api.ReplicationApi/GetNewestEnvelope", idempotencyLevel: .unknown, request: request, headers: headers)
     }
 
     public enum Metadata {
         public enum Methods {
+            public static let subscribeOriginators = Connect.MethodSpec(name: "SubscribeOriginators", service: "xmtp.xmtpv4.message_api.ReplicationApi", type: .serverStream)
             public static let subscribeEnvelopes = Connect.MethodSpec(name: "SubscribeEnvelopes", service: "xmtp.xmtpv4.message_api.ReplicationApi", type: .serverStream)
+            public static let subscribeTopics = Connect.MethodSpec(name: "SubscribeTopics", service: "xmtp.xmtpv4.message_api.ReplicationApi", type: .serverStream)
             public static let queryEnvelopes = Connect.MethodSpec(name: "QueryEnvelopes", service: "xmtp.xmtpv4.message_api.ReplicationApi", type: .unary)
             public static let publishPayerEnvelopes = Connect.MethodSpec(name: "PublishPayerEnvelopes", service: "xmtp.xmtpv4.message_api.ReplicationApi", type: .unary)
             public static let getInboxIds = Connect.MethodSpec(name: "GetInboxIds", service: "xmtp.xmtpv4.message_api.ReplicationApi", type: .unary)
