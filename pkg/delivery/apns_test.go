@@ -8,26 +8,35 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/xmtp/example-notification-server-go/pkg/interfaces"
 	"github.com/xmtp/example-notification-server-go/pkg/options"
-	v1 "github.com/xmtp/xmtpd/pkg/proto/message_api/v1"
 	"github.com/xmtp/example-notification-server-go/pkg/topics"
 )
 
-func Test_ApnsDelivery_BuildNotification_TopicField(t *testing.T) {
-	parsed, err := topics.ParseV3Topic("/xmtp/mls/1/g-24ce39d660600b3a98adff3075b6d1f4/proto")
-	require.NoError(t, err)
+const deliveryTestTopic = "/xmtp/mls/1/g-24ce39d660600b3a98adff3075b6d1f4/proto"
 
-	a := ApnsDelivery{opts: options.ApnsOptions{Topic: "com.example.app"}}
-	req := interfaces.SendRequest{
-		Message: &v1.Envelope{Message: []byte("test")},
+func buildDeliveryRequest(t *testing.T, payloadFormat interfaces.PayloadFormat) interfaces.SendRequest {
+	t.Helper()
+
+	parsed, err := topics.ParseV3Topic(deliveryTestTopic)
+	require.NoError(t, err)
+	topicStr := topics.TopicToString(parsed)
+	return interfaces.SendRequest{
+		Topic:            topicStr,
+		EncryptedMessage: []byte("test"),
+		PayloadFormat:    payloadFormat,
 		Subscription: interfaces.Subscription{
 			TopicV4: parsed,
-			Topic:   topics.TopicToString(parsed),
+			Topic:   topicStr,
 		},
 		Installation: interfaces.Installation{
 			DeliveryMechanism: interfaces.DeliveryMechanism{Token: "device-token"},
 		},
 		MessageContext: interfaces.MessageContext{MessageType: topics.V3Conversation},
 	}
+}
+
+func TestApns_PayloadIncludesPayloadFormat(t *testing.T) {
+	a := ApnsDelivery{opts: options.ApnsOptions{Topic: "com.example.app"}}
+	req := buildDeliveryRequest(t, interfaces.PayloadFormatV3)
 
 	notification := a.buildNotification(req)
 	payloadBytes, err := notification.Payload.(*payload.Payload).MarshalJSON()
@@ -35,7 +44,20 @@ func Test_ApnsDelivery_BuildNotification_TopicField(t *testing.T) {
 
 	var p map[string]interface{}
 	require.NoError(t, json.Unmarshal(payloadBytes, &p))
-	require.Equal(t, "/xmtp/mls/1/g-24ce39d660600b3a98adff3075b6d1f4/proto", p["topic"])
+	require.Equal(t, "v3", p["payloadFormat"])
+}
+
+func Test_ApnsDelivery_BuildNotification_TopicField(t *testing.T) {
+	a := ApnsDelivery{opts: options.ApnsOptions{Topic: "com.example.app"}}
+	req := buildDeliveryRequest(t, interfaces.PayloadFormatV3)
+
+	notification := a.buildNotification(req)
+	payloadBytes, err := notification.Payload.(*payload.Payload).MarshalJSON()
+	require.NoError(t, err)
+
+	var p map[string]interface{}
+	require.NoError(t, json.Unmarshal(payloadBytes, &p))
+	require.Equal(t, deliveryTestTopic, p["topic"])
 	require.NotContains(t, p, "topicBytesB64")
 	require.Equal(t, "device-token", notification.DeviceToken)
 	require.Equal(t, "com.example.app", notification.Topic)

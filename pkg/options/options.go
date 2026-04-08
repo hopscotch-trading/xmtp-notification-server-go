@@ -26,13 +26,14 @@ type XmtpOptions struct {
 	UseTls          bool   `long:"xmtp-listener-tls" description:"Whether to connect to XMTP network using TLS"`
 	GrpcAddress     string `short:"x" long:"xmtp-address" env:"XMTP_GRPC_ADDRESS" description:"Address (including port) of XMTP GRPC server"`
 	NumWorkers      int    `long:"num-workers" description:"Number of workers used to process messages" default:"50"`
+	ListenerType    string `long:"listener-type" env:"LISTENER_TYPE" default:"v3" choice:"v3" choice:"v4" description:"Which listener type to use (v3 or v4)"`
 }
 
 type HttpDeliveryOptions struct {
-	Enabled           bool   `long:"http-delivery"`
-	Address           string `long:"http-delivery-address"`
-	AuthHeader        string `long:"http-auth-header"`
-	MaxAttempts       int    `long:"http-max-attempts" env:"HTTP_MAX_ATTEMPTS" default:"1" description:"Maximum number of delivery attempts (minimum 1, includes initial attempt)"`
+	Enabled             bool   `long:"http-delivery"`
+	Address             string `long:"http-delivery-address"`
+	AuthHeader          string `long:"http-auth-header"`
+	MaxAttempts         int    `long:"http-max-attempts" env:"HTTP_MAX_ATTEMPTS" default:"1" description:"Maximum number of delivery attempts (minimum 1, includes initial attempt)"`
 	InitialRetryDelayMs int    `long:"http-initial-retry-delay-ms" env:"HTTP_INITIAL_RETRY_DELAY_MS" default:"250" description:"Initial retry delay in milliseconds (doubles with each retry)"`
 }
 

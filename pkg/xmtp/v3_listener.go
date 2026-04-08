@@ -3,6 +3,7 @@ package xmtp
 import (
 	"context"
 	"crypto/sha1"
+	"encoding/binary"
 	"encoding/hex"
 	"io"
 	"strings"
@@ -10,27 +11,24 @@ import (
 
 	"github.com/xmtp/example-notification-server-go/pkg/interfaces"
 	"github.com/xmtp/example-notification-server-go/pkg/options"
-	v1 "github.com/xmtp/xmtpd/pkg/proto/message_api/v1"
 	"github.com/xmtp/example-notification-server-go/pkg/topics"
+	v1 "github.com/xmtp/xmtpd/pkg/proto/message_api/v1"
 	topicpkg "github.com/xmtp/xmtpd/pkg/topic"
 	"go.uber.org/zap"
 )
 
-const STARTING_SLEEP_TIME = 100 * time.Millisecond
-const DELIVERY_TIMEOUT = 15 * time.Second
-
 type Listener struct {
-	logger           *zap.Logger
-	ctx              context.Context
-	cancelFunc       func()
-	xmtpClient       v1.MessageApiClient
-	opts             options.XmtpOptions
-	messageChannel   chan *v1.Envelope
-	installations    interfaces.Installations
-	deliveryServices []interfaces.Delivery
-	subscriptions    interfaces.Subscriptions
-	clientVersion    string
-	appVersion       string
+	logger         *zap.Logger
+	ctx            context.Context
+	cancelFunc     func()
+	xmtpClient     v1.MessageApiClient
+	opts           options.XmtpOptions
+	messageChannel chan *v1.Envelope
+	installations  interfaces.Installations
+	subscriptions  interfaces.Subscriptions
+	clientVersion  string
+	appVersion     string
+	dispatcher     deliveryDispatcher
 }
 
 func NewListener(
@@ -49,19 +47,24 @@ func NewListener(
 	}
 
 	ctx, cancel := context.WithCancel(ctx)
+	namedLogger := logger.Named("xmtp-listener")
 
 	return &Listener{
-		ctx:              ctx,
-		cancelFunc:       cancel,
-		logger:           logger.Named("xmtp-listener"),
-		xmtpClient:       client,
-		opts:             opts,
-		messageChannel:   make(chan *v1.Envelope, 100),
-		installations:    installations,
-		deliveryServices: deliveryServices,
-		subscriptions:    subscriptions,
-		clientVersion:    clientVersion,
-		appVersion:       appVersion,
+		ctx:            ctx,
+		cancelFunc:     cancel,
+		logger:         namedLogger,
+		xmtpClient:     client,
+		opts:           opts,
+		messageChannel: make(chan *v1.Envelope, 100),
+		installations:  installations,
+		subscriptions:  subscriptions,
+		clientVersion:  clientVersion,
+		appVersion:     appVersion,
+		dispatcher: deliveryDispatcher{
+			logger:           namedLogger,
+			ctx:              ctx,
+			deliveryServices: deliveryServices,
+		},
 	}, nil
 }
 
@@ -84,7 +87,7 @@ func (l *Listener) startMessageListener() {
 		if err != nil {
 			l.logger.Error("error connecting to stream", zap.Error(err))
 			time.Sleep(sleepTime)
-			sleepTime = sleepTime * 2
+			sleepTime = cappedBackoff(sleepTime)
 			if err = l.refreshClient(); err != nil {
 				l.logger.Error("error refreshing client", zap.Error(err))
 			}
@@ -104,10 +107,10 @@ func (l *Listener) startMessageListener() {
 				}
 
 				if err != nil {
-					l.logger.Error("error reading from stream", zap.Error(err))
+					l.logger.Warn("error reading from stream", zap.Error(err))
 					// Wait 100ms to avoid hammering the API and getting rate limited
 					time.Sleep(sleepTime)
-					sleepTime = sleepTime * 2
+					sleepTime = cappedBackoff(sleepTime)
 					if err = l.refreshClient(); err != nil {
 						l.logger.Error("error refreshing client", zap.Error(err))
 					}
@@ -131,10 +134,9 @@ func (l *Listener) startMessageWorkers() {
 			for msg := range l.messageChannel {
 				err = l.processEnvelope(msg)
 				if err != nil {
-					l.logger.Error("error processing envelope", zap.String("topic", msg.ContentTopic), zap.Error(err))
+					l.logger.Error("error processing envelope", zap.String("v3_topic", msg.ContentTopic), zap.Error(err))
 					continue
 				}
-				// l.logger.Info("processed a message", zap.String("topic", msg.ContentTopic))
 			}
 		}()
 	}
@@ -143,15 +145,18 @@ func (l *Listener) startMessageWorkers() {
 func (l *Listener) processEnvelope(env *v1.Envelope) error {
 	// Fast-path: skip expensive parsing for topics that can't be V3
 	if !strings.HasPrefix(env.ContentTopic, topics.V3_PREFIX) {
-		l.logger.Debug("ignoring message", zap.String("topic", env.ContentTopic))
+		l.logger.Debug("ignoring message", zap.String("v3_topic", env.ContentTopic))
 		return nil
 	}
+
 	t, err := topics.ParseV3Topic(env.ContentTopic)
 	if err != nil {
-		l.logger.Info("ignoring message with non-convertible topic",
-			zap.String("topic", env.ContentTopic), zap.Error(err))
+		l.logger.Warn("ignoring message with unsupported topic format", zap.String("v3_topic", env.ContentTopic))
+		//nolint:nilerr
 		return nil
 	}
+
+	logger := l.logger.With(zap.String("topic", t.String()))
 	subs, err := l.subscriptions.GetSubscriptions(l.ctx, t, getThirtyDayPeriodsFromEpoch(env))
 	if err != nil {
 		return err
@@ -172,54 +177,24 @@ func (l *Listener) processEnvelope(env *v1.Envelope) error {
 	}
 
 	if len(installations) == 0 {
-		l.logger.Info("No matching installations found for topic", zap.String("topic", env.ContentTopic))
+		logger.Debug("No matching installations found for topic")
 		return nil
 	}
 
 	sendRequests := buildSendRequests(env, t, installations, subs)
 	for _, request := range sendRequests {
-		if !l.shouldDeliver(request.MessageContext, request.Subscription) {
-			l.logger.Info("Skipping delivery of request",
+		if !l.dispatcher.shouldDeliver(request.MessageContext, request.Subscription) {
+			logger.Debug("Skipping delivery of request",
 				zap.Any("message_context", request.MessageContext),
 				zap.Bool("subscription_has_hmac_key", request.Subscription.HmacKey != nil),
 			)
 			continue
 		}
-		if err = l.deliver(request); err != nil {
-			l.logger.Error("error delivering request", zap.Error(err), zap.String("content_topic", env.ContentTopic))
+		if err = l.dispatcher.deliver(request); err != nil {
+			logger.Error("error delivering request", zap.Error(err))
 		}
 	}
 	return err
-}
-
-func (l *Listener) shouldDeliver(messageContext interfaces.MessageContext, subscription interfaces.Subscription) bool {
-	if subscription.HmacKey != nil && len(subscription.HmacKey.Key) > 0 {
-		isSender := messageContext.IsSender(subscription.HmacKey.Key)
-		if isSender {
-			return false
-		}
-	}
-	if messageContext.ShouldPush != nil {
-		shouldPush := messageContext.ShouldPush
-		return *shouldPush
-	}
-	return true
-}
-
-func (l *Listener) deliver(req interfaces.SendRequest) error {
-	ctx, cancel := context.WithTimeout(l.ctx, DELIVERY_TIMEOUT)
-	defer cancel()
-	for _, service := range l.deliveryServices {
-		if service.CanDeliver(req) && req.Message != nil {
-			l.logger.Info("active subscription found. sending message",
-				zap.String("topic", req.Message.ContentTopic),
-				zap.String("message_type", string(req.MessageContext.MessageType)),
-			)
-			return service.Send(ctx, req)
-		}
-	}
-	l.logger.Info("No delivery service matches request", zap.String("delivery_mechanism", string(req.Installation.DeliveryMechanism.Kind)))
-	return nil
 }
 
 func (l *Listener) refreshClient() error {
@@ -236,13 +211,15 @@ func buildIdempotencyKey(env *v1.Envelope) string {
 	h := sha1.New()
 	h.Write([]byte(env.ContentTopic))
 	h.Write(env.Message)
+	h.Write(binary.BigEndian.AppendUint64(nil, env.TimestampNs))
+
 	return hex.EncodeToString(h.Sum(nil))
 }
 
 func buildSendRequests(envelope *v1.Envelope, t *topicpkg.Topic, installations []interfaces.Installation, subscriptions []interfaces.Subscription) []interfaces.SendRequest {
 	idempotencyKey := buildIdempotencyKey(envelope)
 	messageContext := getContext(envelope, t)
-	out := []interfaces.SendRequest{}
+	out := make([]interfaces.SendRequest, 0, len(subscriptions))
 	installationMap := make(map[string]interfaces.Installation)
 	for _, installation := range installations {
 		installationMap[installation.Id] = installation
@@ -251,11 +228,13 @@ func buildSendRequests(envelope *v1.Envelope, t *topicpkg.Topic, installations [
 	for _, subscription := range subscriptions {
 		if installation, exists := installationMap[subscription.InstallationId]; exists {
 			out = append(out, interfaces.SendRequest{
-				IdempotencyKey: idempotencyKey,
-				Message:        envelope,
-				MessageContext: messageContext,
-				Installation:   installation,
-				Subscription:   subscription,
+				IdempotencyKey:   idempotencyKey,
+				Topic:            topics.TopicToString(t),
+				EncryptedMessage: envelope.Message,
+				PayloadFormat:    interfaces.PayloadFormatV3,
+				MessageContext:   messageContext,
+				Installation:     installation,
+				Subscription:     subscription,
 			})
 		}
 	}

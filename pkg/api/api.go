@@ -28,14 +28,16 @@ type ApiServer struct {
 	httpServer    *http.Server
 	port          int
 	listener      net.Listener
+	listenerType  interfaces.ListenerType
 }
 
-func NewApiServer(logger *zap.Logger, opts options.ApiOptions, installations interfaces.Installations, subscriptions interfaces.Subscriptions) *ApiServer {
+func NewApiServer(logger *zap.Logger, opts options.ApiOptions, installations interfaces.Installations, subscriptions interfaces.Subscriptions, listenerType interfaces.ListenerType) *ApiServer {
 	return &ApiServer{
 		logger:        logger.Named("api"),
 		installations: installations,
 		subscriptions: subscriptions,
 		port:          opts.Port,
+		listenerType:  listenerType,
 	}
 }
 
@@ -105,11 +107,19 @@ func (s *ApiServer) RegisterInstallation(
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("missing delivery mechanism"))
 	}
 	s.logger.Info("got mechanism", zap.Any("mechanism", mechanism))
+
+	payloadFormat := interfaces.PayloadFormatFromProto(req.Msg.PayloadFormat)
+	payloadFormat = interfaces.NormalizePayloadFormat(payloadFormat)
+	if err := payloadFormat.ValidateForListener(s.listenerType); err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	}
+
 	result, err := s.installations.Register(
 		ctx,
 		interfaces.Installation{
 			Id:                req.Msg.InstallationId,
 			DeliveryMechanism: *mechanism,
+			PayloadFormat:     payloadFormat,
 		},
 	)
 	if err != nil {

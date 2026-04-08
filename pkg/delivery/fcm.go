@@ -49,10 +49,6 @@ func (f FcmDelivery) CanDeliver(req interfaces.SendRequest) bool {
 }
 
 func (f FcmDelivery) Send(ctx context.Context, req interfaces.SendRequest) error {
-	if req.Message == nil {
-		return errors.New("missing message")
-	}
-
 	data := buildFcmData(req)
 
 	apnsHeaders := map[string]string{}
@@ -81,9 +77,10 @@ func (f FcmDelivery) Send(ctx context.Context, req interfaces.SendRequest) error
 			Headers: apnsHeaders,
 			Payload: &messaging.APNSPayload{
 				CustomData: map[string]interface{}{
-					"topic":            req.Subscription.Topic,
+					"topic":            req.Topic,
 					"encryptedMessage": data["encryptedMessage"],
 					"messageType":      data["messageType"],
+					"payloadFormat":    data["payloadFormat"],
 				},
 				Aps: &messaging.Aps{
 					ContentAvailable: req.Subscription.IsSilent,
@@ -98,8 +95,9 @@ func (f FcmDelivery) Send(ctx context.Context, req interfaces.SendRequest) error
 
 func buildFcmData(req interfaces.SendRequest) map[string]string {
 	return map[string]string{
-		"topic":            req.Subscription.Topic,
-		"encryptedMessage": base64.StdEncoding.EncodeToString(req.Message.Message),
+		"topic":            req.Topic,
+		"encryptedMessage": base64.StdEncoding.EncodeToString(req.EncryptedMessage),
 		"messageType":      string(req.MessageContext.MessageType),
+		"payloadFormat":    req.PayloadFormat.String(),
 	}
 }
