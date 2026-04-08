@@ -3,8 +3,8 @@ package delivery
 import (
 	"context"
 	"errors"
-	"strings"
 	"os"
+	"strings"
 
 	"github.com/sideshow/apns2"
 	"github.com/sideshow/apns2/payload"
@@ -64,12 +64,7 @@ func (a ApnsDelivery) Send(ctx context.Context, req interfaces.SendRequest) erro
 		return errors.New("missing message")
 	}
 
-	notification := a.buildNotification(req.Subscription.IsSilent,
-		req.Installation.DeliveryMechanism.Token,
-		req.Message.ContentTopic,
-		string(req.MessageContext.MessageType),
-		req.Message.Message,
-	)
+	notification := a.buildNotification(req)
 
 	res, err := a.apnsClient.PushWithContext(ctx, notification)
 	if res != nil {
@@ -84,13 +79,13 @@ func (a ApnsDelivery) Send(ctx context.Context, req interfaces.SendRequest) erro
 	return err
 }
 
-func (a ApnsDelivery) buildNotification(isSilent bool, token string, contentTopic string, messageKind string, messageBytes []byte) *apns2.Notification {
+func (a ApnsDelivery) buildNotification(req interfaces.SendRequest) *apns2.Notification {
 	notificationPayload := payload.NewPayload().
-		Custom("topic", contentTopic).
-		Custom("encryptedMessage", messageBytes).
-		Custom("messageKind", messageKind)
+		Custom("topic", req.Subscription.Topic).
+		Custom("encryptedMessage", req.Message.Message).
+		Custom("messageKind", string(req.MessageContext.MessageType))
 
-	if isSilent {
+	if req.Subscription.IsSilent {
 		notificationPayload = notificationPayload.ContentAvailable()
 	} else {
 		notificationPayload = notificationPayload.
@@ -99,7 +94,7 @@ func (a ApnsDelivery) buildNotification(isSilent bool, token string, contentTopi
 	}
 
 	return &apns2.Notification{
-		DeviceToken: token,
+		DeviceToken: req.Installation.DeliveryMechanism.Token,
 		Topic:       a.opts.Topic,
 		Payload:     notificationPayload,
 	}

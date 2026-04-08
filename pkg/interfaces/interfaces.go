@@ -8,6 +8,7 @@ import (
 
 	v1 "github.com/xmtp/example-notification-server-go/pkg/proto/message_api/v1"
 	"github.com/xmtp/example-notification-server-go/pkg/topics"
+	"github.com/xmtp/xmtpd/pkg/topic"
 )
 
 type DeliveryMechanismKind string
@@ -39,13 +40,14 @@ type Installation struct {
 }
 
 type Subscription struct {
-	Id             int64     `json:"-"`
-	CreatedAt      time.Time `json:"created_at"`
-	InstallationId string    `json:"-"`
-	Topic          string    `json:"topic"`
-	IsActive       bool      `json:"-"`
-	IsSilent       bool      `json:"is_silent"`
-	HmacKey        *HmacKey  `json:"-"`
+	Id             int64        `json:"-"`
+	CreatedAt      time.Time    `json:"created_at"`
+	InstallationId string       `json:"-"`
+	Topic          string       `json:"topic"`
+	TopicV4        *topic.Topic `json:"-"`
+	IsActive       bool         `json:"-"`
+	IsSilent       bool         `json:"is_silent"`
+	HmacKey        *HmacKey     `json:"-"`
 }
 
 type SendRequest struct {
@@ -79,12 +81,10 @@ type HmacKey struct {
 }
 
 type SubscriptionInput struct {
-	Topic    string
+	Topic    *topic.Topic
 	IsSilent bool
 	HmacKeys []HmacKey
 }
-
-type HmacUpdates map[string][]HmacKey
 
 // Pluggable Installation Service interface
 //
@@ -99,9 +99,9 @@ type Installations interface {
 //
 //go:generate mockery --dir ../interfaces --name Subscriptions --output ../../mocks --outpkg mocks
 type Subscriptions interface {
-	Subscribe(ctx context.Context, installationId string, topics []string) error
-	Unsubscribe(ctx context.Context, installationId string, topics []string) error
-	GetSubscriptions(ctx context.Context, topic string, thirtyDayPeriod int) ([]Subscription, error)
+	Subscribe(ctx context.Context, installationId string, topics []*topic.Topic) error
+	Unsubscribe(ctx context.Context, installationId string, topics []*topic.Topic) error
+	GetSubscriptions(ctx context.Context, t *topic.Topic, thirtyDayPeriod int) ([]Subscription, error)
 	SubscribeWithMetadata(ctx context.Context, installationId string, subscriptions []SubscriptionInput) error
 }
 

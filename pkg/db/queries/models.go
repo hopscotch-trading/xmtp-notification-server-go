@@ -28,9 +28,9 @@ type Subscription struct {
 	ID             int64
 	InstallationID string
 	CreatedAt      time.Time
-	Topic          string
 	IsActive       bool
 	IsSilent       bool
+	Topic          []byte
 }
 
 type SubscriptionHmacKey struct {

@@ -16,13 +16,13 @@ import (
 const batchInsertSubscriptions = `-- name: BatchInsertSubscriptions :exec
 INSERT INTO subscriptions (installation_id, topic, is_active, is_silent)
 SELECT $1::text, t.topic, TRUE, FALSE
-FROM unnest($2::text[]) AS t(topic)
+FROM unnest($2::bytea[]) AS t(topic)
 ON CONFLICT (installation_id, topic) DO NOTHING
 `
 
 type BatchInsertSubscriptionsParams struct {
 	InstallationID string
-	Topics         []string
+	Topics         [][]byte
 }
 
 func (q *Queries) BatchInsertSubscriptions(ctx context.Context, arg BatchInsertSubscriptionsParams) error {
@@ -57,7 +57,7 @@ const batchUpsertSubscriptions = `-- name: BatchUpsertSubscriptions :many
 INSERT INTO subscriptions (installation_id, topic, is_active, is_silent)
 SELECT $1::text, t.topic, TRUE, t.is_silent
 FROM ROWS FROM (
-    unnest($2::text[]),
+    unnest($2::bytea[]),
     unnest($3::boolean[])
 ) AS t(topic, is_silent)
 ON CONFLICT (installation_id, topic) DO UPDATE
@@ -67,13 +67,13 @@ RETURNING id, topic
 
 type BatchUpsertSubscriptionsParams struct {
 	InstallationID string
-	Topics         []string
+	Topics         [][]byte
 	IsSilents      []bool
 }
 
 type BatchUpsertSubscriptionsRow struct {
 	ID    int64
-	Topic string
+	Topic []byte
 }
 
 func (q *Queries) BatchUpsertSubscriptions(ctx context.Context, arg BatchUpsertSubscriptionsParams) ([]BatchUpsertSubscriptionsRow, error) {
@@ -115,12 +115,12 @@ const deactivateSubscriptions = `-- name: DeactivateSubscriptions :exec
 UPDATE subscriptions
 SET is_active = FALSE
 WHERE installation_id = $1
-  AND topic = ANY($2::text[])
+  AND topic = ANY($2::bytea[])
 `
 
 type DeactivateSubscriptionsParams struct {
 	InstallationID string
-	Topics         []string
+	Topics         [][]byte
 }
 
 func (q *Queries) DeactivateSubscriptions(ctx context.Context, arg DeactivateSubscriptionsParams) error {
@@ -150,14 +150,14 @@ ORDER BY s.id
 
 type ListActiveSubscriptionsByTopicAndPeriodParams struct {
 	ThirtyDayPeriod int32
-	Topic           string
+	Topic           []byte
 }
 
 type ListActiveSubscriptionsByTopicAndPeriodRow struct {
 	ID                         int64
 	CreatedAt                  time.Time
 	InstallationID             string
-	Topic                      string
+	Topic                      []byte
 	IsActive                   bool
 	IsSilent                   bool
 	HasHmacKey                 interface{}
@@ -202,20 +202,20 @@ const reactivateSubscriptions = `-- name: ReactivateSubscriptions :many
 UPDATE subscriptions
 SET is_active = TRUE
 WHERE installation_id = $1
-  AND topic = ANY($2::text[])
+  AND topic = ANY($2::bytea[])
 RETURNING id, created_at, installation_id, topic, is_active, is_silent
 `
 
 type ReactivateSubscriptionsParams struct {
 	InstallationID string
-	Topics         []string
+	Topics         [][]byte
 }
 
 type ReactivateSubscriptionsRow struct {
 	ID             int64
 	CreatedAt      time.Time
 	InstallationID string
-	Topic          string
+	Topic          []byte
 	IsActive       bool
 	IsSilent       bool
 }

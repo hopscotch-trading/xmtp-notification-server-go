@@ -2,14 +2,14 @@
 UPDATE subscriptions
 SET is_active = TRUE
 WHERE installation_id = sqlc.arg(installation_id)
-  AND topic = ANY(sqlc.arg(topics)::text[])
+  AND topic = ANY(sqlc.arg(topics)::bytea[])
 RETURNING id, created_at, installation_id, topic, is_active, is_silent;
 
 -- name: DeactivateSubscriptions :exec
 UPDATE subscriptions
 SET is_active = FALSE
 WHERE installation_id = sqlc.arg(installation_id)
-  AND topic = ANY(sqlc.arg(topics)::text[]);
+  AND topic = ANY(sqlc.arg(topics)::bytea[]);
 
 -- name: ListActiveSubscriptionsByTopicAndPeriod :many
 SELECT
@@ -34,7 +34,7 @@ ORDER BY s.id;
 INSERT INTO subscriptions (installation_id, topic, is_active, is_silent)
 SELECT sqlc.arg(installation_id)::text, t.topic, TRUE, t.is_silent
 FROM ROWS FROM (
-    unnest(sqlc.arg(topics)::text[]),
+    unnest(sqlc.arg(topics)::bytea[]),
     unnest(sqlc.arg(is_silents)::boolean[])
 ) AS t(topic, is_silent)
 ON CONFLICT (installation_id, topic) DO UPDATE
@@ -55,7 +55,7 @@ SET key = EXCLUDED.key, updated_at = NOW();
 -- name: BatchInsertSubscriptions :exec
 INSERT INTO subscriptions (installation_id, topic, is_active, is_silent)
 SELECT sqlc.arg(installation_id)::text, t.topic, TRUE, FALSE
-FROM unnest(sqlc.arg(topics)::text[]) AS t(topic)
+FROM unnest(sqlc.arg(topics)::bytea[]) AS t(topic)
 ON CONFLICT (installation_id, topic) DO NOTHING;
 
 -- name: DeactivateInstallationSubscriptions :exec

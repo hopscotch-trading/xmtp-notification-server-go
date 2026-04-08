@@ -3,7 +3,6 @@ package delivery
 import (
 	"context"
 	"encoding/base64"
-
 	firebase "firebase.google.com/go/v4"
 	"firebase.google.com/go/v4/messaging"
 	"github.com/pkg/errors"
@@ -54,13 +53,7 @@ func (f FcmDelivery) Send(ctx context.Context, req interfaces.SendRequest) error
 		return errors.New("missing message")
 	}
 
-	message := base64.StdEncoding.EncodeToString(req.Message.Message)
-	topic := req.Message.ContentTopic
-	data := map[string]string{
-		"topic":            topic,
-		"encryptedMessage": message,
-		"messageType":      string(req.MessageContext.MessageType),
-	}
+	data := buildFcmData(req)
 
 	apnsHeaders := map[string]string{}
 	androidPriority := "high"
@@ -87,11 +80,10 @@ func (f FcmDelivery) Send(ctx context.Context, req interfaces.SendRequest) error
 		APNS: &messaging.APNSConfig{
 			Headers: apnsHeaders,
 			Payload: &messaging.APNSPayload{
-				CustomData: map[string]interface {
-				}{
-					"topic":            topic,
-					"encryptedMessage": message,
-					"messageType":      string(req.MessageContext.MessageType),
+				CustomData: map[string]interface{}{
+					"topic":            req.Subscription.Topic,
+					"encryptedMessage": data["encryptedMessage"],
+					"messageType":      data["messageType"],
 				},
 				Aps: &messaging.Aps{
 					ContentAvailable: req.Subscription.IsSilent,
@@ -102,4 +94,12 @@ func (f FcmDelivery) Send(ctx context.Context, req interfaces.SendRequest) error
 	})
 
 	return err
+}
+
+func buildFcmData(req interfaces.SendRequest) map[string]string {
+	return map[string]string{
+		"topic":            req.Subscription.Topic,
+		"encryptedMessage": base64.StdEncoding.EncodeToString(req.Message.Message),
+		"messageType":      string(req.MessageContext.MessageType),
+	}
 }
