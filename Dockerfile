@@ -7,7 +7,6 @@ RUN apk add --no-cache build-base
 WORKDIR /app
 COPY . .
 
-# Build the final node binary
 ARG GIT_COMMIT=unknown
 ARG XMTP_GO_CLIENT_VERSION=unknown
 RUN go build \
@@ -25,12 +24,15 @@ LABEL description="XMTP Example Notification Server"
 
 # color, nocolor, json
 ENV GOLOG_LOG_FMT=nocolor
+RUN addgroup --system --gid 1001 go
+RUN adduser --system --uid 1001 -G go go
 
-# go-waku default port
+COPY --from=builder --chown=go:go /app/bin/notifications-server /usr/bin/
+
+USER go
+
 EXPOSE 8080
 
-COPY --from=builder /app/bin/notifications-server /usr/bin/
-
 ENTRYPOINT ["/usr/bin/notifications-server"]
-# By default just show help if called without arguments
+
 CMD ["--help"]

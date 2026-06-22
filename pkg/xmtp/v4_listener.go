@@ -34,6 +34,7 @@ type V4Listener struct {
 	subscriptions   interfaces.Subscriptions
 	clientVersion   string
 	appVersion      string
+	env							string
 	ready           atomic.Bool
 }
 
@@ -46,6 +47,7 @@ func NewV4Listener(
 	deliveryServices []interfaces.Delivery,
 	clientVersion string,
 	appVersion string,
+	env string,
 ) (*V4Listener, error) {
 	client, conn, err := NewV4Client(ctx, opts.GrpcAddress, opts.UseTls, clientVersion, appVersion)
 	if err != nil {
@@ -67,6 +69,7 @@ func NewV4Listener(
 		subscriptions:   subscriptions,
 		clientVersion:   clientVersion,
 		appVersion:      appVersion,
+		env: 						 env,
 		dispatcher: deliveryDispatcher{
 			logger:           namedLogger,
 			ctx:              ctx,

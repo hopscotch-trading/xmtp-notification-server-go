@@ -1,5 +1,5 @@
 #!/bin/bash
 set -eou pipefail
 
-read -ra shellcheck_paths <<< "$(grep -rIzl '^#!' dev)"
+read -ra shellcheck_paths <<< "$(grep -rIl '^#!' dev)"
 shellcheck "${shellcheck_paths[@]}"

@@ -1,0 +1,15 @@
+#!/bin/zsh -o pipefail
+
+which gh >/dev/null || echo -e "GitHub CLI required\nInstall with \`brew install gh\`"
+
+PAGER=
+local BRANCH=sync-`date +%Y-%m-%d-%H-%M`
+
+if [[ ! $(git branch --show-current) -eq $BRANCH ]]; then
+  git checkout -b $BRANCH
+fi
+
+gh repo sync --branch main --force
+
+git checkout main
+git merge $BRANCH

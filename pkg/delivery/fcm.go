@@ -8,6 +8,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/xmtp/example-notification-server-go/pkg/interfaces"
 	"github.com/xmtp/example-notification-server-go/pkg/options"
+	"github.com/xmtp/example-notification-server-go/pkg/topics"
 	"go.uber.org/zap"
 	"google.golang.org/api/option"
 )
@@ -15,9 +16,10 @@ import (
 type FcmDelivery struct {
 	logger *zap.Logger
 	client *messaging.Client
+	env    string
 }
 
-func NewFcmDelivery(ctx context.Context, logger *zap.Logger, opts options.FcmOptions) (*FcmDelivery, error) {
+func NewFcmDelivery(ctx context.Context, logger *zap.Logger, opts options.FcmOptions, env string) (*FcmDelivery, error) {
 	creds := option.WithCredentialsJSON([]byte(opts.CredentialsJson))
 	app, err := firebase.NewApp(ctx, &firebase.Config{
 		ProjectID: opts.ProjectId,
@@ -41,6 +43,7 @@ func NewFcmDelivery(ctx context.Context, logger *zap.Logger, opts options.FcmOpt
 	return &FcmDelivery{
 		logger: logger,
 		client: messaging,
+		env:    env,
 	}, nil
 }
 
@@ -49,7 +52,31 @@ func (f FcmDelivery) CanDeliver(req interfaces.SendRequest) bool {
 }
 
 func (f FcmDelivery) Send(ctx context.Context, req interfaces.SendRequest) error {
+	if req.Message == nil {
+		return errors.New("missing message")
+	}
+	
 	data := buildFcmData(req)
+
+	prefix := ""
+	invite := false
+	if f.env != "prod" {
+		prefix = fmt.Sprintf("%s.", f.env)
+	}
+
+	link := fmt.Sprintf("https://%shopscotch.trade/chat", prefix)
+	if req.MessageContext.MessageType == topics.V3Welcome {
+		invite = true
+		link = fmt.Sprintf("https://%shopscotch.trade/chat/invites", prefix)
+	}
+
+	body := "New chat message"
+	if invite {
+		body = "New chat invite"
+	}
+
+	webpushHeaders := map[string]string{}
+	webpushHeaders["Urgency"] = "high"
 
 	apnsHeaders := map[string]string{}
 	androidPriority := "high"
@@ -58,19 +85,25 @@ func (f FcmDelivery) Send(ctx context.Context, req interfaces.SendRequest) error
 		apnsHeaders["apns-push-type"] = "background"
 		apnsHeaders["apns-priority"] = "5"
 		androidPriority = "normal"
+		webpushHeaders["Urgency"] = "normal"
 	}
 
 	_, err := f.client.Send(ctx, &messaging.Message{
 		Token: req.Installation.DeliveryMechanism.Token,
 		Data:  data,
+		Notification: &messaging.Notification{
+			Title: "Chat notification",
+			Body:  body,
+		},
 		Android: &messaging.AndroidConfig{
 			Data:     data,
 			Priority: androidPriority,
 		},
 		Webpush: &messaging.WebpushConfig{
-			Data: data,
-			Notification: &messaging.WebpushNotification{
-				Title: "New message from XMTP",
+			Data:    data,
+			Headers: webpushHeaders,
+			FCMOptions: &messaging.WebpushFCMOptions{
+				Link: link,
 			},
 		},
 		APNS: &messaging.APNSConfig{
@@ -107,6 +140,10 @@ func buildFcmData(req interfaces.SendRequest) map[string]string {
 		"encryptedMessage": base64.StdEncoding.EncodeToString(req.EncryptedMessage),
 		"messageType":      string(req.MessageContext.MessageType),
 		"payloadFormat":    req.PayloadFormat.String(),
+		"channel":         	"chat",
+		"deduplicationId": 	req.IdempotencyKey,
+		"installationId": 	req.Installation.Id,
+		"timestampNs":    	fmt.Sprint(req.Message.TimestampNs),
 	}
 	if req.TopicBytesB64 != "" {
 		data["topicBytesB64"] = req.TopicBytesB64
