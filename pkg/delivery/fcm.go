@@ -3,6 +3,8 @@ package delivery
 import (
 	"context"
 	"encoding/base64"
+	"fmt"
+
 	firebase "firebase.google.com/go/v4"
 	"firebase.google.com/go/v4/messaging"
 	"github.com/pkg/errors"
@@ -52,10 +54,6 @@ func (f FcmDelivery) CanDeliver(req interfaces.SendRequest) bool {
 }
 
 func (f FcmDelivery) Send(ctx context.Context, req interfaces.SendRequest) error {
-	if req.Message == nil {
-		return errors.New("missing message")
-	}
-	
 	data := buildFcmData(req)
 
 	prefix := ""
@@ -143,7 +141,6 @@ func buildFcmData(req interfaces.SendRequest) map[string]string {
 		"channel":         	"chat",
 		"deduplicationId": 	req.IdempotencyKey,
 		"installationId": 	req.Installation.Id,
-		"timestampNs":    	fmt.Sprint(req.Message.TimestampNs),
 	}
 	if req.TopicBytesB64 != "" {
 		data["topicBytesB64"] = req.TopicBytesB64

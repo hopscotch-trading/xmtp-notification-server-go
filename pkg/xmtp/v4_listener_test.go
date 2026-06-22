@@ -37,7 +37,7 @@ func TestV4Listener_NewAndStop(t *testing.T) {
 		ListenerEnabled: true,
 		GrpcAddress:     "localhost:5556",
 		NumWorkers:      5,
-	}, instSvc, subsSvc, []interfaces.Delivery{mockDelivery}, "test", "test")
+	}, instSvc, subsSvc, []interfaces.Delivery{mockDelivery}, "test", "test", "dev")
 	require.NoError(t, err)
 	require.NotNil(t, l)
 	l.Stop()

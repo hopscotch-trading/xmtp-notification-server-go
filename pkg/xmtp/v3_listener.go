@@ -43,7 +43,7 @@ func NewListener(
 	deliveryServices []interfaces.Delivery,
 	clientVersion string,
 	appVersion string,
-	env string
+	env string,
 ) (*Listener, error) {
 	client, err := NewClient(ctx, opts.GrpcAddress, opts.UseTls, clientVersion, appVersion)
 	if err != nil {
