@@ -47,6 +47,10 @@ func main() {
 	appVersion := "xmtp-go/" + shortXMTPGoClientVersion()
 	env := opts.HsEnv
 
+	if env == "" {
+		logger.Fatal("Missing required variable 'env'")
+	}
+
 	logger.Info("starting", zap.String("client-version", clientVersion), zap.String("app-version", appVersion), zap.String("env", env))
 
 	if opts.CreateMigration != "" {

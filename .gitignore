@@ -31,3 +31,7 @@ docs/plans
 .omx/
 .claude/*
 !.claude/skills
+
+## Local
+**/launch.json
+**/__debug*
