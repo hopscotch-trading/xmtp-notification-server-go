@@ -131,6 +131,31 @@ type SendRequest struct {
 	Subscription     Subscription   `json:"-"`
 }
 
+type PushServicesRequest struct {
+	Type							string							`json:"type"`
+	DeduplicationId		string 							`json:"deduplicationId"`
+	Push 							bool								`json:"push"`
+	Params						struct {
+		Topic 							string							`json:"topic"`
+		EncryptedMessage 		[]byte 							`json:"encryptedMessage"`
+		MessageType					topics.MessageType 	`json:"messageType"`
+		InstallationId			string							`json:"installationId"`
+	}																			`json:"params"`
+}
+
+func (r SendRequest) PushServicesRequest() PushServicesRequest {
+	request := PushServicesRequest{
+		Type: 						"xmtp::push",
+		DeduplicationId:	r.IdempotencyKey,
+		Push: 						true,
+	}
+	request.Params.Topic = r.Topic
+	request.Params.EncryptedMessage = r.EncryptedMessage
+	request.Params.MessageType = r.MessageContext.MessageType
+	request.Params.InstallationId = r.Installation.Id
+	return request
+}
+
 // sendRequestJSON is the HTTP delivery JSON format, preserving backward
 // compatibility with the original V3 envelope-based payload shape.
 type sendRequestJSON struct {

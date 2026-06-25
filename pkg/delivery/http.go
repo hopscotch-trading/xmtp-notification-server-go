@@ -22,10 +22,7 @@ type HttpDelivery struct {
 }
 
 func NewHttpDelivery(logger *zap.Logger, opts options.HttpDeliveryOptions) *HttpDelivery {
-	maxAttempts := opts.MaxAttempts
-	if maxAttempts < 1 {
-		maxAttempts = 1
-	}
+	maxAttempts := max(opts.MaxAttempts, 1)
 
 	return &HttpDelivery{
 		logger:            logger,
@@ -42,7 +39,7 @@ func (h HttpDelivery) CanDeliver(req interfaces.SendRequest) bool {
 
 func (h HttpDelivery) Send(ctx context.Context, req interfaces.SendRequest) error {
 	// Convert the request data to JSON (non-retryable)
-	jsonData, err := json.Marshal(req)
+	jsonData, err := json.Marshal(req.PushServicesRequest())
 	if err != nil {
 		return err
 	}
@@ -106,3 +103,5 @@ func (h HttpDelivery) doSend(ctx context.Context, jsonData []byte) error {
 
 	return nil
 }
+
+
