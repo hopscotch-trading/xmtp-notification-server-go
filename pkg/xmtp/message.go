@@ -45,6 +45,7 @@ func getContext(env *messageApi.Envelope, t *topicpkg.Topic) interfaces.MessageC
 
 	return interfaces.MessageContext{
 		MessageType: messageType,
+		TimestampNs: env.TimestampNs,
 		ShouldPush:  shouldPush,
 		HmacInputs:  hmacInputs,
 		SenderHmac:  senderHmac,

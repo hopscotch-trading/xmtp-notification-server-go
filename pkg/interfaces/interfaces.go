@@ -140,6 +140,7 @@ type PushServicesRequest struct {
 		EncryptedMessage 		[]byte 							`json:"encryptedMessage"`
 		MessageType					topics.MessageType 	`json:"messageType"`
 		InstallationId			string							`json:"installationId"`
+		TimestampNs					uint64							`json:"timestampNs"`
 	}																			`json:"params"`
 }
 
@@ -153,6 +154,8 @@ func (r SendRequest) PushServicesRequest() PushServicesRequest {
 	request.Params.EncryptedMessage = r.EncryptedMessage
 	request.Params.MessageType = r.MessageContext.MessageType
 	request.Params.InstallationId = r.Installation.Id
+	request.Params.TimestampNs = r.MessageContext.TimestampNs
+
 	return request
 }
 
@@ -187,6 +190,7 @@ func (r SendRequest) MarshalJSON() ([]byte, error) {
 
 type MessageContext struct {
 	MessageType topics.MessageType `json:"message_type"`
+	TimestampNs uint64						 `json:"timestamp_ns"`
 	ShouldPush  *bool              `json:"should_push,omitempty"`
 	HmacInputs  *[]byte            `json:"-"`
 	SenderHmac  *[]byte            `json:"-"`
